@@ -1,0 +1,47 @@
+CMS_slices
+The portfolio management problem is the classical research topic, it is the decision-making process of allocating investment into different financial investment products. It plays a crucial and fundamental role in the financial market. However, getting the optimal strategy in a complex and dynamic stock market is challenging due to high uncertainty and massive noise in the financial market. Nowadays, Artificial Intelligence (AI) has been well developed in many different aspects, especially in the financial markets. Today, I will using the AI technique to construct the risk-sensitivity policies for management problems. 
+
+1.  Background of Reinforcement learning -1
+
+Machine learning is a branch of artificial intelligence (AI) which focuses on the use of data and algorithms to imitate that humans learn.
+Machine learning can be grouped in three groups.
+Supervised learning is an approach that learning a function of mapping an input to an output. It learns a function from labeled training data.
+Unsupervised learning is a type of algorithm that learns and analyze the cluster unlabeled datasets.  The main purpose of unsupervised learning is to discover hidden and interesting patterns in data. 
+Reinforcement learning is a branch of Machine Learning that deals with methods of mapping the current situations or states to actions  in order to maximize a numerical reward. 
+RL can be considered a semi-supervised learning, it is a medium between supervised and unsupervised learning. Using the reward function to guide the RL agent obtain the optimal action from a larger, unlabeled data set. 
+
+Distributional DDPG 
+If we only look at the expected return, and this came up in a few questions.  like what if the variance. what if in one state you can get a small positive reward with very high probability, but in another state you cam maybe get a very high reward but with small probability which one should you prefer. Of course it depends.
+
+Distributional DDPG
+If we want to model the full distribution of returns, there is also the distribution of form of bellman equation. The distributional bellman equation has a very similar form, which is distributed like a reward plus a discounted distribution of next state. 
+the distribution of the reward you will get for taking action in state plus the discounted distribution of the next state.
+
+The operator 
+The operator is basically a way of describing the expected behavior of your learning algorithm. so when we do leaning and reinforcement learning, we are going to sample states from the environment and we are going to wander around the world and try to learn about this world. and one way to describe the average behavior that we can just by looking at the operator how if i do a one step of update. what going to happened to my current prediction. 
+
+T \mu is my operator, I will look at the result of applying this operator given the full distribution. 
+The result that updated is going to be distributed like a random variable r which is my reward plus a random variable z at next state. 
+ is distributed like a reward plus a discounted next state distribution. 
+
+Wassertain distance
+I am going to take two random variable u and v, you can image there is two cdf. What we want to know is that the difference of the area between these two curves. which means we are going to start at zero integrating upwards, looking at all the differences. That is going to be the distance between the our two distributions.     
+
+Results
+1.
+Figure 1 shows that the portfolio of DDPG has given a 10.05% accumulated rate of return on investment at the end of the testing period. Here, the market value presents a portfolio that consists of equally-weighted investment assets. maximum drawdown of DDPG is significantly greater than market value. 
+It indicate that the trading strategy of the DDPG portfolio has a higher potential risk and suffers a massive loss when the financial market crashed.
+2.
+Figure 2 shows the price movements of the portfolio with different risk parameters α during the testing period based on the ten-day window size.  When α = 5%, the agent only takes into consideration the worst-case, the agent is willing to choose cash instead of invest funds in other risky assets to protect the investor who may suffer a potential loss. As α increases, the agent is not willing to consider the extreme cases, and aims to allocate more investment funds into these risky assets.  which means that the when the investor is more willing to take risk, the accumulated rate of return and maximum dropdown increase.
+Although the accumulated portfolio value hasn’t increased too much, the maximum drawdown has significantly decreased.
+3.
+This Figure 3 shows the Hierarchical DDPG portfolio with different CVaR constraints under window size of ten day. we can 
+obtain that the maximum drawdown has decreased for all the cases compared to the classical DDPG.  
+These evidence illustrate that the Hierarchical DDPG is better than DDPG to avoid loss in the recession market. 
+4.
+In this Figure 4, we compare the performance of these three approaches during the testing period. The Hierarchical DDPG provides the highest accumulated rate of return and the lowest maximum drawdown compared to the classical DDPG and distributional DDPG. In addition, the distributional DDPG has a lower maximum dropdown and a higher accumulated rate of return compared to the classical DDPG.
+5.
+Figure 5 shows the portfolio risk of our approaches.  It shows that the portfolio risk of Hierarchical DDPG keeps lower than the CVaR constraint, and the distributional DDPG has a lower portfolio risk than the classical DDPG for all the testing period.
+
+
+Overall, we can conclude that the Hierarchical DDPG and Distributional DDPG perform better than the classical DDPG for the rare occurrences of catastrophic events, and they also have the capability to protect the investor who may suffer a massive loss in the recession market.
