@@ -37,7 +37,7 @@ def scale_to_start(x):
     return x
 
 
-def sharpe(returns, freq=50, rfr=0):
+def sharpe(returns, freq=252, rfr=0):
     """ Given a set of returns, calculates naive (rfr=0) sharpe (eq 28). """
     return (np.sqrt(freq) * np.mean(returns - rfr + eps)) / np.std(returns - rfr + eps)
 
@@ -45,7 +45,7 @@ def sharpe(returns, freq=50, rfr=0):
 def max_drawdown(returns):
     """ Max drawdown. See https://www.investopedia.com/terms/m/maximum-drawdown-mdd.asp """
     peak = returns.max()
-    trough = returns[returns.argmax():].min()
+    trough = returns[returns.values.argmax():].min()
     return (trough - peak) / (peak + eps)
 
 
@@ -138,13 +138,14 @@ class DataSrc(object):
     def reset(self):
         self.step = 0
         "extract data for this episode"
-        if self.random_reset:
-            self.idx = np.random.randint(low=self.window_length + 1, high=self._data.shape[1] - self.steps - 2) # TODO modify the low and high
-        else:
-            if self.idx > (self._data.shape[1] - self.steps - self.window_length - 1):
-                self.idx = self.window_length + 1
-            else:
-                self.idx += self.steps
+        # if self.random_reset:
+        #     self.idx = np.random.randint(low=self.window_length + 1, high=self._data.shape[1] - self.steps - 2) # TODO modify the low and high
+        # else:
+        #     if self.idx > (self._data.shape[1] - self.steps - self.window_length - 1):
+        #         self.idx = self.window_length + 1
+        #     else:
+        #         self.idx += self.steps
+        self.idx = np.random.randint(low=self.window_length + 1, high=self._data.shape[1] - self.steps - 2)
         self.data = self._data[:, self.idx - self.window_length:self.idx + self.steps + 1, :].copy()
         self.times = self._times[self.idx - self.window_length:self.idx + self.steps + 1]
 
