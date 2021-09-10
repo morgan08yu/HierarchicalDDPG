@@ -572,7 +572,7 @@ df_v[["portfolio_value", "market_value"]]
 df_v['CVaR'].plot()
 plt.show()
 
-log_dir = '/Users/Morgans/Desktop/trading_system/video/DDPGAgent-ddpg-agent-noobs.pth'
+# log_dir = '/Users/Morgans/Desktop/trading_system/video/DDPGAgent-ddpg-agent-noobs.pth'
 agent.save(log_dir)
 
 

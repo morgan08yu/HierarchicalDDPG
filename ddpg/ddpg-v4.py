@@ -17,11 +17,11 @@ log.info('%s logger started', __name__)
 # from utils.data import read_stock_history, index_to_date, date_to_index, normalize
 import pandas as pd
 
-window = 10
+window = 5
 os.chdir('../')
 root = os.getcwd()
 # root = '/Users/Morgans/Desktop/trading_system/'
-steps = 128
+steps = 256
 import datetime
 
 ts = datetime.datetime.utcnow().strftime('%Y%m%d_%H-%M-%S')
@@ -81,11 +81,11 @@ class DeepRLWrapper(gym.Wrapper):
 
     def step(self, action):
         state, reward, done, info = self.env.step(action)
-        state = self.normalize_state(state)
+        # state = self.normalize_state(state)
         # if reward > 0:
         #     reward *= 1000  # often reward scaling
         # else:
-        reward *= 1000
+        # reward *= 1000
         return state, reward, done, info
 
     def reset(self):
@@ -99,8 +99,7 @@ class DeepRLWrapper(gym.Wrapper):
 
 def task_fn():
     env = PortfolioEnv(df=df_train, steps=128, window_length=window, output_mode='EIIE',
-                       trading_cost=0.0025, utility='Log', scale=True, scale_extra_cols=True,
-                       random_reset=True, include_cash=True)
+                       trading_cost=0.0025, utility='Log', scale=True, scale_extra_cols=True, random_reset=True)
     env = TransposeHistory(env)
     env = ConcatStates(env)
     env = SoftmaxActions(env)
@@ -110,8 +109,7 @@ def task_fn():
 
 def task_fn_vali():
     env = PortfolioEnv(df=df_train, steps=2000, window_length=window, output_mode='EIIE',
-                       trading_cost=0.0025, utility='Log', scale=True, scale_extra_cols=True,
-                       include_cash=True, random_reset=False)
+                       trading_cost=0.0025, utility='Log', scale=True, scale_extra_cols=True, random_reset=False)
     env = TransposeHistory(env)
     env = ConcatStates(env)
     env = SoftmaxActions(env)
@@ -121,8 +119,7 @@ def task_fn_vali():
 
 def task_fn_test():
     env = PortfolioEnv(df=df_test, steps=500, window_length=window, output_mode='EIIE',
-                       trading_cost=0.0025, utility='Log', scale=True, scale_extra_cols=True,
-                       include_cash=True, random_reset=False)
+                       trading_cost=0.0025, utility='Log', scale=True, scale_extra_cols=True, random_reset=False)
     env = TransposeHistory(env)
     env = ConcatStates(env)
     env = SoftmaxActions(env)
@@ -347,23 +344,21 @@ class DeterministicCriticNet(nn.Module, BasicNet):
         stride_time = state_dim[1] - 1 - 2  #
         self.features = features = task.state_dim[0]
         h0 = 8
-        h2 = 8
+        h2 = 16
         h1 = 32
         self.action = actions = action_dim-1
-        self.conv0 = nn.Conv2d(features, h0, (3, 3), padding=(1, 1))
-        self.conv1 = nn.Conv2d(h0, h2, (3, 1))
+        self.conv1 = nn.Conv2d(features, h2, (3, 1))
         self.conv2 = nn.Conv2d(h2, h1, (stride_time, 1), stride=(stride_time, 1))
-        self.layer3 = nn.Linear((h1+2)*action_dim, h0)
-        self.layer4 = nn.Linear(h0, 1)
+        self.layer3 = nn.Linear((h1+2)*actions, 1)
         # self.layer4.weight.data.uniform_(-0.003, 0.003)
         # nn.init.xavier_uniform_(self.conv1s.weight, gain=nn.init.calculate_gain('relu'))
         self.non_linear = non_linear
         if batch_norm:
-            # self.bn1 = nn.BatchNorm2d(h0)
+            self.bn1 = nn.BatchNorm2d(h0)
             self.bn2 = nn.BatchNorm2d(h2)
-            self.bn31 = nn.BatchNorm2d(h1+2)
-            self.bn41 = nn.BatchNorm1d(h0)
-            self.bn42 = nn.BatchNorm1d(h2)
+            self.bn3 = nn.BatchNorm2d(h1+2)
+            # self.bn41 = nn.BatchNorm1d(h0)
+            # self.bn42 = nn.BatchNorm1d(h2)
             # self.bn51 = nn.BatchNorm1d(64)
             # self.bn61 = nn.BatchNorm1d(32)
         self.batch_norm = batch_norm
@@ -378,31 +373,27 @@ class DeterministicCriticNet(nn.Module, BasicNet):
 
     def forward(self, x, action):
         x = self.to_torch_variable(x)
-        act = self.to_torch_variable(action)[:, None, None, :]  # remove cash bias
+        act = self.to_torch_variable(action)[:, None, None, :-1]  # remove cash bias
         w0 = x[:, :1, :1, :]  # weights from last step
         state = x[:, :, 1:, :]
         # state = x[:, 3, 1:, :][:,None,:,:]
         # state = self.to_torch_variable(state)[:, None, :, :]
-        phi0 = self.non_linear(self.conv0(state))
-        if self.batch_norm:
-           phi0 = self.bn1(phi0)
-        phi1 = self.conv1(phi0)
+        # phi0 = self.non_linear(self.conv0(state))
+        # if self.batch_norm:
+        #    phi0 = self.bn1(phi0)
+        phi1 = self.non_linear(self.conv1(state))
         if self.batch_norm:
             phi1 = self.bn2(phi1)
-        phi1 = self.non_linear(phi1)
-        phi2 = self.conv2(phi1)
-        phi2 = self.non_linear(phi2)
-        phi21 = torch.cat([phi2, w0, act], 1)
+        phi2 = self.non_linear(self.conv2(phi1))
+        h = torch.cat([phi2, w0, act], 1)
         if self.batch_norm:
-            phi21 = self.bn31(phi21)
+            h = self.bn3(h)
         # phi21 = self.non_linear(phi21)
         batch_size = x.size()[0]
-        phi3 = self.layer3(phi21.view((batch_size, -1)))
-        if self.batch_norm:
-            phi3 = self.bn41(phi3)
-        phi3 = self.non_linear(phi3)
-        out = self.layer4(phi3)
-
+        out = self.layer3(h.view((batch_size, -1)))
+        # if self.batch_norm:
+        #     phi3 = self.bn41(phi3)
+        # phi3 = self.non_linear(phi3)
         # a1 = self.layer1a(act)
         # if self.batch_norm:
         #     a1 = self.bn42(a1)
@@ -440,14 +431,15 @@ class DeterministicActorNet(nn.Module, BasicNet):
         stride_time = state_dim[1] - 1 - 2  #
         features = task.state_dim[0]
         h0 = 8
-        h2 = 8
+        h2 = 16
         h1 = 32
-        self.conv0 = nn.Conv2d(features, h0, (3, 3), stride=(1, 1), padding=(1, 1))
+        # self.conv0 = nn.Conv2d(features, h0, (3, 3), stride=(1, 1), padding=(1, 1))
         # plug-in feature # input 64*5 *50 *10 out 64* 48 *8
-        self.conv1 = nn.Conv2d(h0, h2, (3, 1))  # input 64 * 50 * 10   output 64 *48 *8
+        self.conv1 = nn.Conv2d(features, h2, (3, 1))  # input 64 * 50 * 10   output 64 *48 *8
         self.conv2 = nn.Conv2d(h2, h1, (stride_time, 1), stride=(stride_time, 1))
-        self.layer3 = nn.Linear((h1+1)*action_dim, h0)
-        self.layer4 = nn.Linear(h0, action_dim)
+        self.conv3 = nn.Conv2d((h1 + 1), 1, (1, 1))
+        # self.layer3 = nn.Linear((h1+1)*action_dim, h0)
+        # self.layer4 = nn.Linear(h0, action_dim)
         # self.layer4.weight.data.uniform_(-0.003, 0.003)
         # nn.init.uniform_(self.layer3.weight, a=0, b=0.01)
         # nn.init.xavier_uniform_(self.conv1.weight, gain=nn.init.calculate_gain('relu'))
@@ -459,7 +451,7 @@ class DeterministicActorNet(nn.Module, BasicNet):
             self.bn1 = nn.BatchNorm2d(h0)
             self.bn2 = nn.BatchNorm2d(h2)
             self.bn3 = nn.BatchNorm2d(h1+1)
-            self.bn4 = nn.BatchNorm1d(h0)
+            # self.bn4 = nn.BatchNorm1d(h0)
 
         self.batch_norm = batch_norm
         BasicNet.__init__(self, None, gpu, False)
@@ -477,31 +469,27 @@ class DeterministicActorNet(nn.Module, BasicNet):
         # state = x[:, 3, 1:, :][:,None,:,:]
         state = x[:, :, 1:, :]
         # state = self.to_torch_variable(state)[:, None, :,:]
-        phi0 = self.non_linear(self.conv0(state))
-        if self.batch_norm:
-           phi0 = self.bn1(phi0)
-        phi1 =self.conv1(phi0)
+        phi1 = self.non_linear(self.conv1(state))
         if self.batch_norm:
             phi1 = self.bn2(phi1)
-        phi1 = self.non_linear(phi1)
-        phi2 = self.conv2(phi1)
-        phi2 = self.non_linear(phi2)
+        phi2 = self.non_linear(self.conv2(phi1))
         phi2 = torch.cat([phi2, w0], 1)
         if self.batch_norm:
             phi2 = self.bn3(phi2)
         # phi2 = self.non_linear(phi2)
-        # action = self.non_linear(self.conv3(phi2))  # does not include cash account, add cash in next step.
+        action = self.conv3(phi2)  # does not include cash account, add cash in next step.
         # add cash_bias before we softmax
-        # cash_bias_int = 1  #
-        # cash_bias = self.to_torch_variable(torch.ones(action.size())[:, :, :, :1] * cash_bias_int)
-        # action = torch.cat([cash_bias, action], -1)
-        action = phi2
+        cash_bias_int = 1  #
+        cash_bias = self.to_torch_variable(torch.ones(action.size())[:, :, :, :1] * cash_bias_int)
+        action = torch.cat([cash_bias, action], -1)
+        # action = phi2
         batch_size = action.size()[0]
-        action = self.layer3(action.view((batch_size, -1)))
-        if self.batch_norm:
-            action = self.bn4(action)
-        action = self.non_linear(action)
-        action = self.layer4(action)
+        action = action.view((batch_size, -1))
+        # action = self.layer3(action.view((batch_size, -1)))
+        # if self.batch_norm:
+        #     action = self.bn4(action)
+        # action = self.non_linear(action)
+        # action = self.layer4(action)
         if self.action_gate:
             action = self.action_scale * self.action_gate(action)
         # action = F.softmax(action, axis=1)
@@ -529,10 +517,10 @@ config.replay_fn = lambda: HighDimActionReplay(memory_size=3000, batch_size=32)
 config.random_process_fn = lambda: OrnsteinUhlenbeckProcess(size=task.action_dim, theta=0.3, sigma=0.3,
                                                             sigma_min=0.0002, n_steps_annealing=10000)
 
-config.discount = 0.99
+config.discount = 0.95
 config.min_memory_size = 1000
-config.max_steps = 1000000
-config.max_episode_length = 3000
+config.max_steps = 10000000
+config.max_episode_length = 10000
 config.target_network_mix = 0.005
 config.noise_decay_interval = 1000000
 config.gradient_clip = 20
@@ -540,7 +528,7 @@ config.min_epsilon = 0.001
 config.reward_scaling = 1
 config.test_interval = 50
 config.test_repetitions = 1
-config.save_interval = config.episode_limit = 30
+config.save_interval = config.episode_limit = 3000
 config.logger = Logger(root + '/log', gym.logger)
 config.tag = tag
 agent = DDPGAgent(config)

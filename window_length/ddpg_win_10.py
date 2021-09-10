@@ -54,7 +54,7 @@ tag = 'ddpg-' + ts
 # except ValueError as e:
 #     print(e)
 #     pass
-from Environment.ddpg_env import PortfolioEnv
+from Environment.DDPGPEnv import PortfolioEnv
 from utils.util import MDD, sharpe, softmax
 from wrappers import SoftmaxActions, TransposeHistory # , ConcatStates
 from wrappers.concat import ConcatStates

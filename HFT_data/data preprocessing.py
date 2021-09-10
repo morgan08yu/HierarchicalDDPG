@@ -23,7 +23,7 @@ import os, json
 
 
 dfs=[]
-for infile in glob.glob('/Users/Morgans/Desktop/trading_system/HFT_data/ETF/*.csv'):
+for infile in glob.glob('/Users/Morgans/Desktop/trading_system/HFT_data/additional dataset/*.csv'):
     df = pd.read_csv(infile)
     
     # date
@@ -47,7 +47,7 @@ dfs.sort(key=lambda x:len(x), reverse=True)
    # df.index= pd.to_datetime(df.Date)
    # dftest=dfs   
 "select data "
-dfs1= [df for df in dfs if df.index.min() < pd.Timestamp('2020-07-20')]
+dfs1= [df for df in dfs if df.index.min() < pd.Timestamp('2020-07-30')]
 #dfs1= [df for df in dfs1 if df.name.endswith('BTC')]
 print([str(min(df.index)) for df in dfs1])
 
@@ -82,8 +82,8 @@ split_time = df.index[-c]
 df_test = df[df.index > split_time]
 df_train = df[df.index <= split_time]
 print('test#:',len(df_test), 'train#:', len(df_train), 'test_frac:', len(df_test)/len(df), 'cutoff_time:',split_time)
-df_train.to_hdf('/Users/Morgans/Desktop/trading_system/HFT_data/ETFETF/poloniex_fc.hf', key='train', mode='w', append=False)
-df_test.to_hdf('/Users/Morgans/Desktop/trading_system/HFT_data/ETFETF/poloniex_fc.hf', key='test', mode='a', append=False)
+df_train.to_hdf('/Users/Morgans/Desktop/trading_system/HFT_data/additional dataset/poloniex_fc.hf', key='train', mode='w', append=False)
+df_test.to_hdf('/Users/Morgans/Desktop/trading_system/HFT_data/additional dataset/poloniex_fc.hf', key='test', mode='a', append=False)
 df_train
 
 

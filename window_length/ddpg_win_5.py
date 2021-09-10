@@ -54,9 +54,9 @@ tag = 'ddpg-' + ts
 # except ValueError as e:
 #     print(e)
 #     pass
-from Environment.ddpg_env import PortfolioEnv
+from Environment.DDPGPEnv import PortfolioEnv
 from utils.util import MDD, sharpe, softmax
-from wrappers import SoftmaxActions, TransposeHistory # , ConcatStates
+from wrappers import SoftmaxActions, TransposeHistory, ConcatStates
 from wrappers.concat import ConcatStates
 from wrappers.logit import LogitActions
 # df_train = pd.read_hdf('/Users/Morgans/Desktop/trading_system/HFT_data/ten_stock/poloniex_ten_sh.hf', key='train')
@@ -437,7 +437,8 @@ config.network_fn = lambda: DisjointActorCriticNet(config.actor_network_fn, conf
 config.actor_optimizer_fn = lambda params: torch.optim.Adam(params, lr=1e-5)
 config.critic_optimizer_fn = lambda params: torch.optim.Adam(params, lr=1e-4, weight_decay=0.001)
 config.replay_fn = lambda: HighDimActionReplay(memory_size=10000, batch_size=32)
-config.random_process_fn = lambda: OrnsteinUhlenbeckProcess(size=task.action_dim, theta=0.3, sigma=0.3, sigma_min=0.01, n_steps_annealing=10000)
+config.random_process_fn = lambda: OrnsteinUhlenbeckProcess(size=task.action_dim, theta=0.3, sigma=0.3,
+                                                            sigma_min=0.01, n_steps_annealing=10000)
 
 config.discount = 0.95
 config.min_memory_size = 1000

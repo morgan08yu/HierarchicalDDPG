@@ -18,6 +18,7 @@ log.info('%s logger started', __name__)
 import pandas as pd
 
 window = 10
+os.chdir('../')
 root = os.getcwd()
 steps = 256
 import datetime
@@ -68,8 +69,8 @@ def concat_states(state):
     #else:
     #    weight_insert = np.ones(
     #        weight_insert_shape) * weights[np.newaxis, 1:, np.newaxis]
-    weight_insert = np.ones(weight_insert_shape) * weights[np.newaxis, np.newaxis, :]  #TODO change here
-    #weight_insert = np.ones(weight_insert_shape) * weights[np.newaxis, 1:, np.newaxis]
+    # weight_insert = np.ones(weight_insert_shape) * weights[np.newaxis, np.newaxis, :]  #TODO change here
+    weight_insert = np.ones(weight_insert_shape) * weights[np.newaxis, 1:, np.newaxis]
     state = np.concatenate([weight_insert, history], axis=1)
     return state
 
@@ -131,7 +132,7 @@ class DeepRLWrapper(gym.Wrapper):
 
 def task_fn():
     env = PortfolioEnv(df=df_train, steps=128, window_length=window, output_mode='EIIE', trading_cost=0.0025,
-                       utility='Log', scale=True, scale_extra_cols=True, include_cash=False)
+                       utility='Log', scale=True, scale_extra_cols=True)
     env = TransposeHistory(env)
     env = ConcatStates(env)
     env = SoftmaxActions(env)
@@ -141,7 +142,7 @@ def task_fn():
 
 def task_fn_test():
     env = PortfolioEnv(df=df_test, steps=650, window_length = window, output_mode='EIIE', trading_cost=0.0025,
-                       utility='Log', scale=True, scale_extra_cols=True, include_cash=False)
+                       utility='Log', scale=True, scale_extra_cols=True)
     env = TransposeHistory(env)
     env = ConcatStates(env)
     env = SoftmaxActions(env)
@@ -151,7 +152,7 @@ def task_fn_test():
 
 def task_fn_vali():
     env = PortfolioEnv(df=df_train, steps=2000, window_length = window, output_mode='EIIE', trading_cost=0.0025,
-                       utility='Log', scale=True, scale_extra_cols=True, include_cash=False)
+                       utility='Log', scale=True, scale_extra_cols=True)
     env = TransposeHistory(env)
     env = ConcatStates(env)
     env = SoftmaxActions(env)
@@ -473,7 +474,7 @@ class DeterministicActorNet(nn.Module, BasicNet):
         # nn.init.kaiming_normal_(self.conv1.weight, mode='fan_out', nonlinearity='relu')
         # nn.init.kaiming_normal_(self.conv2.weight, mode='fan_out', nonlinearity='relu')
         # nn.init.kaiming_normal_(self.conv3.weight, mode='fan_out', nonlinearity='relu')
-        self.layer3.weight.data.uniform_(0, 0.01)
+        # self.layer3.weight.data.uniform_(0, 0.01)
         #nn.init.kaiming_uniform_(self.conv2.weight, mode='fan_in', nonlinearity='relu')
         #nn.init.uniform_(self.conv3.weight, a=0, b=0.003)
         #nn.init.xavier_uniform_(self.conv3.weight, gain=nn.init.calculate_gain('relu'))
@@ -557,7 +558,7 @@ config.random_process_fn = lambda: OrnsteinUhlenbeckProcess(size=task.action_dim
 config.discount = 0.99
 config.min_memory_size = 10000
 config.max_steps = 1000000
-config.max_episode_length = 3000
+config.max_episode_length = 100
 config.target_network_mix = 0.001
 config.noise_decay_interval = 10000
 config.gradient_clip = 20 # avoid the grad too large
