@@ -32,6 +32,7 @@ import time
 import seaborn as sns
 from scipy.stats import norm
 window = 50
+os.chdir('../')
 root = os.getcwd()
 steps = 128
 import datetime
@@ -54,10 +55,10 @@ except ValueError as e:
     pass
 
 #from Environment.DDPGPEnv import PortfolioEnv
-from Environment.ENV import PortfolioEnv
+from Environment.ENV import PPortfolioEnv as PortfolioEnv
 from utils.util import MDD, sharpe, softmax
-from wrappers import RobSoftmaxActions, RobTransposeHistory, RobConcatStates
-
+from wrappers import RobSoftmaxActions, RobTransposeHistory
+from wrappers.concat import RobConcatStates
 from wrappers.logit import LogitActions
 #df_train = pd.read_hdf('/Users/Morgans/Desktop/trading_system/HFT_data/ten_stock/poloniex_ten_sh.hf', key='train')
 #df_test = pd.read_hdf('/Users/Morgans/Desktop/trading_system/HFT_data/ten_stock/poloniex_ten_sh.hf', key='test')
@@ -773,8 +774,6 @@ try:
 except KeyboardInterrupt as e:
     save_ddpg(agent)
     raise (e)
-
-
 # check the plot
 
 #plt.figure()
