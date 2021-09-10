@@ -119,17 +119,17 @@ class DataSrc(object):
         if self.scale:
             last_close_price = data_window[:, -1, 3]
             data_window[:, :, :nb_pc] /= last_close_price[:, np.newaxis, np.newaxis]
-            data_window[:, :, :nb_pc] = (data_window[:, :, :nb_pc] - 1) * 100 # TODO try this one
+            # data_window[:, :, :nb_pc] = (data_window[:, :, :nb_pc] - 1) * 100 # TODO try this one
 
         if self.scale_extra_cols:
             "normalize non price columns"
             data_window[:, :, nb_pc:] -= self.stats["mean"][None, None, nb_pc:]
             data_window[:, :, nb_pc:] /= self.stats["std"][None, None, nb_pc:]
             data_window[:, :, nb_pc:] = np.clip(data_window[:, :, nb_pc:],
-                self.stats["mean"][nb_pc:] - self.stats["std"][nb_pc:] * 2,
-                self.stats["mean"][nb_pc:] + self.stats["std"][nb_pc:] * 2)
+                                                self.stats["mean"][nb_pc:] - self.stats["std"][nb_pc:] * 10,
+                                                self.stats["mean"][nb_pc:] + self.stats["std"][nb_pc:] * 10)
 
-            data_window[:, :, nb_pc:] = (data_window[:, :, nb_pc:] - 1) * 100
+            # data_window[:, :, nb_pc:] = (data_window[:, :, nb_pc:] - 1) * 100
         history = data_window
         done = bool(self.step >= self.steps)
         return history, y1, done, cprice
@@ -140,13 +140,14 @@ class DataSrc(object):
         if self.random_reset:
             self.idx = np.random.randint(low=self.window_length + 1, high=self._data.shape[1] - self.steps - 2) # TODO modify the low and high
         else:
-            if self.idx > (self._data.shape[1] - self.steps - self.window_length - 1):
-                self.idx = self.window_length + 1
-            else:
-                self.idx += self.steps
+            # if self.idx > (self._data.shape[1] - self.steps - self.window_length - 1):
+            self.idx = self.window_length + 1
+            # else:
+            #     self.idx += self.steps
+        # self.idx = np.random.randint(low=self.window_length + 1, high=self._data.shape[1] - self.steps - 2)
         self.data = self._data[:, self.idx - self.window_length:self.idx + self.steps + 1].copy()
         self.times = self._times[self.idx - self.window_length:self.idx + self.steps + 1]
-        #self.idx = np.random.randint(low=self.window_length + 1, high=self._data.shape[1] - self.steps - 2)
+        # self.idx = np.random.randint(low=self.window_length + 1, high=self._data.shape[1] - self.steps - 2)
         #data += np.random.normal(loc=0, scale=self.augment, size=data.shape)
 
 
@@ -183,9 +184,9 @@ class PortfolioSim(object):
             expreturns = np.append(expreturns, np.mean(returns[r]))
         # calculate covariances
         covars = np.cov(returns)
-        expreturns_anu = (1+expreturns)**250 -1   # Annualize returns
-        covars_anu = covars*250  # Annualize covariances
-        return expreturns, covars
+        returns_anu = (1+expreturns)**252 - 1   # Annualize returns
+        vars_anu = covars*252  # Annualize covariances
+        return returns_anu, vars_anu
 
     def ewma_vectorized(self, data, alpha, offset=None, dtype=None, order='C', out=None):
         """
