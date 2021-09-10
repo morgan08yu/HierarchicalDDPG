@@ -7,16 +7,13 @@ def concat_states(state):
     history = state["history"]
     weights = state["weights"]
     weight_insert_shape = (history.shape[0], 1, history.shape[2])
-    # if len(weights) - 1 == history.shape[0]:
-    #    weight_insert = np.ones(
-    #        weight_insert_shape) * weights[1:, np.newaxis, np.newaxis]
-    # elif len(weights) - 1 == history.shape[2]:
-    #    weight_insert = np.ones(
-    #        weight_insert_shape) * weights[np.newaxis, np.newaxis, 1:]
-    # else:
-    #    weight_insert = np.ones(
-    #        weight_insert_shape) * weights[np.newaxis, 1:, np.newaxis]
-    weight_insert = np.ones(weight_insert_shape) * weights[np.newaxis, np.newaxis, :]  # TODO change here
+    if len(weights) - 1 == history.shape[0]:
+       weight_insert = np.ones(weight_insert_shape) * weights[1:, np.newaxis, np.newaxis]
+    elif len(weights) - 1 == history.shape[2]:
+       weight_insert = np.ones(weight_insert_shape) * weights[np.newaxis, np.newaxis, 1:]
+    else:
+       weight_insert = np.ones(weight_insert_shape) * weights[np.newaxis, 1:, np.newaxis]
+    # weight_insert = np.ones(weight_insert_shape) * weights[np.newaxis, np.newaxis, :]  # TODO change here
     # weight_insert = np.ones(weight_insert_shape) * weights[np.newaxis, 1:, np.newaxis]
     state = np.concatenate([weight_insert, history], axis=1)
     return state
@@ -27,14 +24,11 @@ def concat(state):
     # weights2 = state["weights2"]
     weight_insert_shape = (history.shape[0], 1, history.shape[2])
     if len(weights1) - 1 == history.shape[0]:
-        weight_insert1 = np.ones(
-            weight_insert_shape) * weights1[1:, np.newaxis, np.newaxis]
+        weight_insert1 = np.ones(weight_insert_shape) * weights1[1:, np.newaxis, np.newaxis]
     elif len(weights1) - 1 == history.shape[2]:
-        weight_insert1 = np.ones(
-            weight_insert_shape) * weights1[np.newaxis, np.newaxis, 1:]
+        weight_insert1 = np.ones(weight_insert_shape) * weights1[np.newaxis, np.newaxis, 1:]
     else:
         weight_insert1 = np.ones(weight_insert_shape) * weights1[np.newaxis, 1:, np.newaxis]
-
     # if len(weights2) - 1 == history.shape[0]:
     #    weight_insert2 = np.ones(weight_insert_shape) * weights1[1:, np.newaxis, np.newaxis]
     # elif len(weights2) - 1 == history.shape[2]:
