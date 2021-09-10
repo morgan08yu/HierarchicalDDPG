@@ -186,7 +186,7 @@ class PortfolioSim(object):
         covars = np.cov(returns)
         returns_anu = (1+expreturns)**252 - 1   # Annualize returns
         vars_anu = covars*252  # Annualize covariances
-        return returns_anu, vars_anu
+        return expreturns, covars
 
     def ewma_vectorized(self, data, alpha, offset=None, dtype=None, order='C', out=None):
         """

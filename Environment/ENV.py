@@ -313,8 +313,8 @@ class PortfolioSim(object):
         CVaR_n = self.alpha ** -1 * norm.pdf(norm.ppf(self.alpha)) * sigma_gt - mu_gt  #TODO CVaR is depend on g_t
         # r1 = np.log(p1/p0)  #  log rate of return
         CVaR_at = self.alpha ** -1 * norm.pdf(norm.ppf(self.alpha)) * sigma_at - mu_at  #TODO CVaR is depend on g_t
-        sharp_ratio_DDPG = np.sqrt(50) * mu_gt / (sigma_gt + eps)
-        sharp_ratio_at = np.sqrt(50) * mu_at / (sigma_at + eps)
+        sharp_ratio_DDPG = np.sqrt(250) * mu_gt / (sigma_gt + eps)
+        sharp_ratio_at = np.sqrt(250) * mu_at / (sigma_at + eps)
         if self.utility == 'Log':  # log rate of return
             r1 = np.log(p1 / p0) #- np.log(y1.mean())  #np.log
             r1_gt = np.log(p1_gt / p0_gt) #- np.log(y1.mean())
