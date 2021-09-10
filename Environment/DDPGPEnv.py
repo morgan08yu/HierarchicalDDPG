@@ -37,7 +37,7 @@ def scale_to_start(x):
     return x
 
 
-def sharpe(returns, freq=50, rfr=0):
+def sharpe(returns, freq=252, rfr=0):
     """ Given a set of returns, calculates naive (rfr=0) sharpe (eq 28). """
     return (np.sqrt(freq) * np.mean(returns - rfr + eps)) / np.std(returns - rfr + eps)
 
@@ -45,7 +45,7 @@ def sharpe(returns, freq=50, rfr=0):
 def max_drawdown(returns):
     """ Max drawdown. See https://www.investopedia.com/terms/m/maximum-drawdown-mdd.asp """
     peak = returns.max()
-    trough = returns[returns.argmax():].min()
+    trough = returns[returns.values.argmax():].min()
     return (trough - peak) / (peak + eps)
 
 
@@ -276,16 +276,20 @@ class PortfolioSim(object):
         #ewa = self.ewma(cprice, alpha)
         d50 = cprice
         ret50, cor50 = self.assets_historical_returns_and_covariances(d50)
-        dw1 = (y1 * w0) / (np.dot(y1, w0) + eps) #TODO replace w1 with w0
+        dw1 = (y1 * w0) / (np.dot(y1, w0) + eps)  #TODO replace w1 with w0
         #(excluding change in cash to avoid double counting for transaction cost)
-        w2_pre = np.array([0] + [0.25] * len(self.asset_names))
-        dw2_pre = (y1 * w2_pre) / (np.dot(y1, w2_pre) + eps)
+        # w2_pre = np.array([0] + [0.25] * len(self.asset_names))
+        # dw2_pre = (y1 * w2_pre) / (np.dot(y1, w2_pre) + eps)
         c1 = self.cost * (np.abs(dw1[1:] - w1[1:])).sum()
-        c2 = self.cost * (np.abs(dw2_pre[1:] - w2_pre[1:])).sum()
+        # c2 = self.cost * (np.abs(dw2_pre[1:] - w2_pre[1:])).sum()
         p1 = p0 * (1 - c1) * np.dot(y1, w0)
-        p1_null = p0 * (1 - c2) * np.dot(y1, w0) # final portfolio value
+        # p1_null = p0 * (1 - c2) * np.dot(y1, w0)  # final portfolio value
         p1 = p1 * (1 - self.time_cost)  # we can add a cost to holding
         # can't have negative holdings in this model (no shorts)
+        protfolio_risk = np.dot(w1[1:].T, np.dot(cor50, w1[1:]))
+        mw = np.array([1 / len(self.asset_names)] * len(self.asset_names))
+        # market_risk = cor50.diagonal().mean()
+        market_risk = np.dot(mw.T, np.dot(cor50, mw))
         p1 = np.clip(p1, 0, np.inf)
         rho1 = p1 / p0 - 1  # rate of returns
         mu_cvar = np.dot(w1[1:], ret50)
@@ -311,12 +315,12 @@ class PortfolioSim(object):
             raise Exception('Invalid value for utility: %s' % self.utility)
         # immediate reward is log rate of return scaled by episode length
         # remember for next step
-        if CVaR_n < 1:
-            self.w0 = w1
-            self.p0 = p1
-        else:
-            self.w0 = w2_pre
-            self.p0 = p1_null
+        # if CVaR_n < 1:
+        self.w0 = w1
+        self.p0 = p1
+        # else:
+        #     self.w0 = w2_pre
+        #     self.p0 = p1_null
         # if we run out of money, we're done
         done = bool(p1 == 0)
         # should only return single values, not list
@@ -328,6 +332,8 @@ class PortfolioSim(object):
             "rate_of_return": rho1,
             "weights_mean": w1.mean(),
             "weights_std": w1.std(),
+            "portfolio risk": protfolio_risk,
+            "market risk": market_risk,
             "cost": c1,
             "CVaR": CVaR_n
         }
@@ -390,12 +396,12 @@ class PortfolioEnv(gym.Env):
         self.sim = PortfolioSim(asset_names=self.src.asset_names, utility=utility, gamma=gamma,
                                 trading_cost=trading_cost,  time_cost=time_cost, steps=steps)
         self.log_dir = log_dir
-        self._plot = self._plot2 = self._plot3 = None
+        self._plot = self._plot2 = self._plot3 = self._plot4 = None
 
         # openai gym attributes
         # action will be the portfolio weights [cash_bias,w1,w2...] where wn are [0, 1] for each asset
         nb_assets = len(self.src.asset_names)
-        self.action_space = gym.spaces.Box(0.0, 1.0, shape=(nb_assets + 1,))#, dtype = np.float32)
+        self.action_space = gym.spaces.Box(0.0, 1.0, shape=(nb_assets + 1,)) #, dtype = np.float32)
         # get the history space from the data min and max
         if output_mode == 'EIIE':
             obs_shape = (nb_assets, window_length, len(self.src.features))
@@ -441,8 +447,7 @@ class PortfolioEnv(gym.Env):
             pass
         elif self.output_mode == 'atari':
             padding = history.shape[1] - history.shape[0]
-            history = np.pad(history, [[0, padding], [
-                0, 0], [0, 0]], mode='constant')
+            history = np.pad(history, [[0, padding], [0, 0], [0, 0]], mode='constant')
         elif self.output_mode == 'mlp':
             history = history.flatten()
         return {'history': history, 'weights': weights}, reward, done1 or done2, info
@@ -464,7 +469,7 @@ class PortfolioEnv(gym.Env):
     def plot_notebook(self, close):
         """Live plot using the jupyter notebook rendering of matplotlib."""
         if close:
-            self._plot = self._plot2 = self._plot3 = None
+            self._plot = self._plot2 = self._plot3 = self._plot4 = None
             return
         df_info = pd.DataFrame(self.infos)
         df_info.index = pd.to_datetime(df_info["date"], unit='s')
@@ -497,16 +502,27 @@ class PortfolioEnv(gym.Env):
         self._plot3.update(x, ys)
         plt.show()
 
+        # plot portfolio risk
+        if not self._plot4:
+            self._plot_dir4 = os.path.join(self.log_dir, 'notebook_plot_risk_' + str(time.time())) if self.log_dir else None
+            self._plot4 = LivePlotNotebook(log_dir=self._plot_dir4, labels=['portfolio risk']+['market risk'], title='Portfolio Risk', ylabel='risk')
+        ys = [df_info["portfolio risk"].cumsum()]
+        #yss = [df_info["market risk"].cumsum()]
+        market_risk = [df_info["market risk"].cumsum()]
+        self._plot4.update(x, ys + market_risk)
+        plt.show()
+
         if close:
-            self._plot = self._plot2 = self._plot3 = None
+            self._plot = self._plot2 = self._plot3 = self._plot4 = None
 
     def plot(self):
         # show a plot of portfolio vs mean market performance
         df_info = pd.DataFrame(self.infos)
         df_info.index = pd.to_datetime(df_info["date"], unit='s')
+        rate_return = df_info["portfolio_value"].iloc[-1]-1
         mdd = max_drawdown(df_info.rate_of_return + 1)
         sharpe_ratio = sharpe(df_info.rate_of_return)
-        title = 'max_drawdown={: 2.2%} sharpe_ratio={: 2.4f}'.format(mdd, sharpe_ratio)
+        title = 'rate_return={:2.2%} max_drawdown={: 2.2%} sharpe_ratio={: 2.4f}'.format(rate_return, mdd, sharpe_ratio)
         df_info[["portfolio_value", "market_value"]].plot(title=title, fig=plt.gcf(), rot=30)
         plt.show()
 

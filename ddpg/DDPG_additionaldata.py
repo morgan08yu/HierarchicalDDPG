@@ -58,7 +58,7 @@ df_test = pd.read_hdf(path_data, key='test', encoding='utf-8')
 
 
 import gym
-window = 5
+window = 10
 steps = 256
 
 class DeepRLWrapper(gym.Wrapper):
