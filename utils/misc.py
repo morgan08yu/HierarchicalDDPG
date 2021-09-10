@@ -9,7 +9,7 @@ root = os.getcwd()
 
 def run_episodes(agent):
     config = agent.config
-    window_size = 10
+    window_size = 30
     ep = 0
     t0 = time.time()
     #actions = []
@@ -22,8 +22,8 @@ def run_episodes(agent):
         reward, step = agent.episode()
         rewards.append(reward)
         steps.append(step)
-        # avg_reward = np.mean(rewards[-window_size:])
-        avg_reward = np.mean(rewards)
+        avg_reward = np.mean(rewards[-window_size:])
+        # avg_reward = np.mean(rewards)
         config.logger.info('episode %d, reward %f, avg reward %f, total steps %d, episode step %d' % (
             ep, reward, avg_reward, agent.total_steps, step))
 

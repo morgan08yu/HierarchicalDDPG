@@ -6,12 +6,12 @@ import torch.nn.functional as F
 import numpy as np
 from network.base_network import BasicNet
 import logging
-from agent import ProximalPolicyOptimization, DisjointActorCriticNet
+#from agent import ProximalPolicyOptimization, DisjointActorCriticNetdnet
 from component import HighDimActionReplay, OrnsteinUhlenbeckProcess, AdaptiveParamNoiseSpec, hard_update, ddpg_distance_metric
 from utils.config import Config
 from utils.tf_logger import Logger
 import gym
-import torch
+#import torchdp
 from utils.normalizer import Normalizer, StaticNormalizer
 import matplotlib
 import matplotlib.pyplot as plt
@@ -35,7 +35,7 @@ matplotlib.rc('figure', figsize=[18, 10])
 x = df_v_10.index
 color=['blue', 'orange']
 plot5 = LivePlotNotebook(log_dir=None, labels=['portfolio value of DDPG']+
-                                              ['market value'], title='performance of DDPG',colors=color, ylabel= 'Portfolio value')
+                                              ['market value'], title='performance of DDPG', colors=color, ylabel= 'Portfolio value')
 a5 = [df_v_10['portfolio_value']]
 a15 = [df_v_10['market_value']]
 plot5.update(x, a5+a15)

@@ -32,6 +32,7 @@ import time
 import seaborn as sns
 from scipy.stats import norm
 window = 10
+# os.chdir('../')
 root = os.getcwd()
 steps = 128
 import datetime
@@ -53,7 +54,7 @@ except ValueError as e:
     print(e)
     pass
 
-from Environment.ddpg_env import PortfolioEnv
+from Environment.DDPGPEnv import PortfolioEnv
 from utils.util import MDD, sharpe, softmax
 from wrappers import SoftmaxActions, TransposeHistory
 from wrappers.concat import ConcatStates
@@ -373,7 +374,6 @@ class DeterministicActorNet(nn.Module, BasicNet):
         x = self.to_torch_variable(x)
         w0 = x[:, :1, :1, :]  # weights from last step
         x = x[:, :, 1:, :]
-
         # phi0 = self.non_linear(self.conv0(x))
         # if self.batch_norm:
         #     phi0 = self.bn1(phi0)
@@ -386,7 +386,7 @@ class DeterministicActorNet(nn.Module, BasicNet):
             h = self.bn3(h)
         action = self.conv3(h) # does not include cash account, add cash in next step.
         # add cash_bias before we softmax
-        cash_bias_int = 0  #
+        cash_bias_int = 1  #
         cash_bias = self.to_torch_variable(torch.ones(action.size())[:, :, :, :1] * cash_bias_int)
         action = torch.cat([cash_bias, action], -1)
         batch_size = action.size()[0]
@@ -459,8 +459,8 @@ class DeterministicCriticNet(nn.Module, BasicNet):
             h = self.bn3(h)
         batch_size = x.size()[0]
         # action = self.non_linear(self.layer3(h))
-        action = self.layer3(h.view((batch_size, -1)))
-        return action
+        out = self.layer3(h.view((batch_size, -1)))
+        return out
 
     def predict(self, x, action):
         return self.forward(x, action)
@@ -479,7 +479,7 @@ config.actor_optimizer_fn = lambda params: torch.optim.Adam(params, lr=1e-5)
 config.critic_optimizer_fn = lambda params: torch.optim.Adam(params, lr=1e-4, weight_decay=0.001)
 # config.replay_fn = lambda: ReplayMemory(capacity=int(1e9))
 config.replay_fn = lambda: HighDimActionReplay(memory_size=10000, batch_size=64)
-config.random_process_fn = lambda: OrnsteinUhlenbeckProcess(size = task.action_dim, theta=0.3, sigma=0.3, sigma_min=0.01, n_steps_annealing=10000)
+config.random_process_fn = lambda: OrnsteinUhlenbeckProcess(size=task.action_dim, theta=0.3, sigma=0.3, sigma_min=0.01, n_steps_annealing=10000)
 
 config.discount = 0.95
 config.min_memory_size = 1000
@@ -544,7 +544,7 @@ portfolio_value, df_v, actions = test_algo(task_fn_test(), agent)
 
 
 from utils.configration import Configration
-from Environment.HENV import PPortfolioEnv
+from Environment.ENV import PPortfolioEnv
 from utils.util import MDD, sharpe, softmax
 from wrappers import RobSoftmaxActions, RobTransposeHistory
 from wrappers.concat import RobConcatStates
@@ -810,7 +810,7 @@ class Hierachicalagent(nn.Module, BasicNet):
             h = self.bn3(h)
         action = self.conv3(h) # does not include cash account, add cash in next step.
         # add cash_bias before we softmax
-        cash_bias_int = 0
+        cash_bias_int = 1
         cash_bias = self.to_torch_variable(torch.ones(action.size())[:, :, :, :1] * cash_bias_int)
         action = torch.cat([cash_bias, action], -1)
         batch_size = action.size()[0]

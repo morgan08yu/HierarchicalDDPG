@@ -4,6 +4,7 @@ import os
 from matplotlib import pyplot as plt
 import sys
 import matplotlib
+
 # matplotlib.use('nbAgg', force=True)
 matplotlib.rc('figure', figsize=[15, 10])
 # matplotlib.use('TkAgg')
@@ -17,6 +18,7 @@ import tempfile
 import logging
 import time
 import datetime
+
 logger = log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 logging.basicConfig()
@@ -31,12 +33,14 @@ import logging
 import time
 import seaborn as sns
 from scipy.stats import norm
+
 window = 10
 root = os.getcwd()
 steps = 128
 import datetime
+
 ts = datetime.datetime.utcnow().strftime('%Y%m%d_%H-%M-%S')
-save_path = root+'/log_TEST'
+save_path = root + '/log_TEST'
 save_path
 try:
     os.makedirs(os.path.dirname(save_path))
@@ -53,11 +57,12 @@ except ValueError as e:
     print(e)
     pass
 
-from Environment.ddpg_env import PortfolioEnv
+from Environment.DDPGPEnv import PortfolioEnv
 from utils.util import MDD, sharpe, softmax
 from wrappers import SoftmaxActions, TransposeHistory
 from wrappers.concat import ConcatStates
 from wrappers.logit import LogitActions
+
 # df_train = pd.read_hdf('/Users/Morgans/Desktop/trading_system/HFT_data/ten_stock/poloniex_ten_sh.hf', key='train')
 # df_test = pd.read_hdf('/Users/Morgans/Desktop/trading_system/HFT_data/ten_stock/poloniex_ten_sh.hf', key='test')
 # path_data = root+'/HFT_data/financial_crisis/poloniex_fc.hf'
@@ -70,6 +75,7 @@ df_test = pd.read_hdf(path_data, key='test', encoding='utf-8')
 
 import gym
 
+
 class DeepRLWrapper(gym.Wrapper):
     def __init__(self, env):
         super().__init__(env)
@@ -79,14 +85,14 @@ class DeepRLWrapper(gym.Wrapper):
         self.action_dim = self.action_space.shape[0]
 
         self.name = 'DDPGEnv'
-        #self.success_threshold = 2 #TODO
+        # self.success_threshold = 2 #TODO
 
     def normalize_state(self, state):
         return state
 
     def step(self, action):
         state, reward, done, info = self.env.step(action)
-        #reward *= 1000  # often reward scaling
+        # reward *= 1000  # often reward scaling
         return state, reward, done, info
 
     def reset(self):
@@ -95,14 +101,16 @@ class DeepRLWrapper(gym.Wrapper):
             self.env.render('notebook')
         return self.env.reset()
 
+
 def task_fn():
     env = PortfolioEnv(df=df_train, steps=128, window_length=window, output_mode='EIIE',
-                       utility = 'Log', scale=True, scale_extra_cols=True, random_reset=True)
+                       utility='Log', scale=True, scale_extra_cols=True, random_reset=True)
     env = TransposeHistory(env)
     env = ConcatStates(env)
     env = SoftmaxActions(env)
     env = DeepRLWrapper(env)
     return env
+
 
 def task_fn_test():
     env = PortfolioEnv(df=df_test, steps=500, window_length=window, output_mode='EIIE',
@@ -113,6 +121,7 @@ def task_fn_test():
     env = DeepRLWrapper(env)
     return env
 
+
 def task_fn_vali():
     env = PortfolioEnv(df=df_train, steps=2000, window_length=window, output_mode='EIIE',
                        utility='Log', scale=True, scale_extra_cols=True, random_reset=False)
@@ -122,19 +131,21 @@ def task_fn_vali():
     env = DeepRLWrapper(env)
     return env
 
+
 import pickle
 import shutil
 
+
 def save_ddpg(agent):
     agent_type = agent.__class__.__name__
-    save_file = root+'/video/%s-%s-model-%s.bin' % (agent_type, config.tag, agent.task.name)
+    save_file = root + '/video/%s-%s-model-%s.bin' % (agent_type, config.tag, agent.task.name)
     agent.save(save_file)
     return save_file
 
 
 def load_ddpg(agent):
     agent_type = agent.__class__.__name__
-    save_file = root +'/video/%s-%s-model-%s.bin' % (agent_type, config.tag, agent.task.name)
+    save_file = root + '/video/%s-%s-model-%s.bin' % (agent_type, config.tag, agent.task.name)
     new_states = pickle.load(open(save_file, 'rb'))
     states = agent.worker_network.load_state_dict(new_states)
     return save_file
@@ -166,16 +177,18 @@ def load_stats_ddpg(agent):
     return df_online, df
 
 
-
 import logging
 from agent import ProximalPolicyOptimization, DisjointActorCriticNet
-from component import HighDimActionReplay, OrnsteinUhlenbeckProcess, AdaptiveParamNoiseSpec, hard_update, ddpg_distance_metric
+from component import HighDimActionReplay, OrnsteinUhlenbeckProcess, AdaptiveParamNoiseSpec, hard_update, \
+    ddpg_distance_metric
 from utils.config import Config
 from utils.tf_logger import Logger
 import gym
 import torch
 from utils.normalizer import Normalizer, StaticNormalizer
+
 gym.logger.setLevel(logging.INFO)
+
 
 def tensor(x):
     if isinstance(x, torch.Tensor):
@@ -184,7 +197,9 @@ def tensor(x):
     x = torch.tensor(x, device=torch.device('cpu'), dtype=torch.float32)
     return x
 
+
 import torch.multiprocessing as mp
+
 
 class DDPGAgent:
     def __init__(self, config):
@@ -204,7 +219,8 @@ class DDPGAgent:
     def soft_update(self, target, src):
         for target_param, param in zip(target.parameters(), src.parameters()):
             target_param.detach_()
-            target_param.copy_(target_param * (1.0 - self.config.target_network_mix) + param * self.config.target_network_mix)
+            target_param.copy_(
+                target_param * (1.0 - self.config.target_network_mix) + param * self.config.target_network_mix)
 
     def hard_update(self, target, source):
         for target_param, param in zip(target.parameters(), source.parameters()):
@@ -229,14 +245,14 @@ class DDPGAgent:
             action = actor.predict(np.stack([state])).flatten()
             if not deterministic:
                 action += self.random_process.sample()
-                #action = np.clip(action, 0, 1)
-                #else:
-                    #action += max(self.epsilon, config.min_epsilon) * self.random_process.sample()
-                    #self.epsilon -= self.d_epsilon
-                #action += self.random_process.sample()
-                #actor.train()
-                #action = action.data
-                #action += torch.Tensor(self.random_process.sample())
+                # action = np.clip(action, 0, 1)
+                # else:
+                # action += max(self.epsilon, config.min_epsilon) * self.random_process.sample()
+                # self.epsilon -= self.d_epsilon
+                # action += self.random_process.sample()
+                # actor.train()
+                # action = action.data
+                # action += torch.Tensor(self.random_process.sample())
             next_state, reward, done, info = self.task.step(action)
             # next_state = self.state_normalizer(next_state)
 
@@ -244,8 +260,8 @@ class DDPGAgent:
                 video_recorder.capture_frame()
             done = (done or (config.max_episode_length and steps >= config.max_episode_length))
             total_reward += reward
-            #reward = self.reward_normalizer(reward)
-            #next_state = self.state_normalizer.normalize(next_state) * self.config.reward_scaling
+            # reward = self.reward_normalizer(reward)
+            # next_state = self.state_normalizer.normalize(next_state) * self.config.reward_scaling
 
             # tensorboard logging
             prefix = 'test_' if deterministic else ''
@@ -272,7 +288,7 @@ class DDPGAgent:
                 states = tensor(states)
                 actions = tensor(actions)
                 rewards = tensor(rewards).unsqueeze(-1)
-                mask = tensor(1-terminals).unsqueeze(-1)
+                mask = tensor(1 - terminals).unsqueeze(-1)
                 next_states = tensor(next_states)
                 q_next = target_critic.predict(next_states, target_actor.predict(next_states))
                 q_next = config.discount * q_next * mask
@@ -327,7 +343,6 @@ import numpy as np
 from network.base_network import BasicNet
 
 
-
 class DeterministicActorNet(nn.Module, BasicNet):
     def __init__(self,
                  state_dim,
@@ -345,7 +360,7 @@ class DeterministicActorNet(nn.Module, BasicNet):
         h2 = 16
         h1 = 32
         # self.conv0 = nn.Conv2d(features, h0, (3, 3), stride = (1,1), padding=(1,1)) # input 64*5 *50 *10 out 64* 48 *8
-        self.conv1 = nn.Conv2d(features, h2, (3, 1)) # input 64 * 50 * 10   output 64 *48 *8
+        self.conv1 = nn.Conv2d(features, h2, (3, 1))  # input 64 * 50 * 10   output 64 *48 *8
         self.conv2 = nn.Conv2d(h2, h1, (stride_time, 1), stride=(stride_time, 1))
         self.conv3 = nn.Conv2d((h1 + 1), 1, (1, 1))
         # self.out = nn.Linear(5, 5)
@@ -357,7 +372,7 @@ class DeterministicActorNet(nn.Module, BasicNet):
         if batch_norm:
             self.bn1 = nn.BatchNorm2d(h0)
             self.bn2 = nn.BatchNorm2d(h2)
-            self.bn3 = nn.BatchNorm2d(h1+1)
+            self.bn3 = nn.BatchNorm2d(h1 + 1)
 
         self.batch_norm = batch_norm
         BasicNet.__init__(self, None, gpu, False)
@@ -384,7 +399,7 @@ class DeterministicActorNet(nn.Module, BasicNet):
         h = torch.cat([phi2, w0], 1)
         if self.batch_norm:
             h = self.bn3(h)
-        action = self.conv3(h) # does not include cash account, add cash in next step.
+        action = self.conv3(h)  # does not include cash account, add cash in next step.
         # add cash_bias before we softmax
         cash_bias_int = 0  #
         cash_bias = self.to_torch_variable(torch.ones(action.size())[:, :, :, :1] * cash_bias_int)
@@ -429,7 +444,7 @@ class DeterministicCriticNet(nn.Module, BasicNet):
         if batch_norm:
             self.bn1 = nn.BatchNorm2d(h0)
             self.bn2 = nn.BatchNorm2d(h2)
-            self.bn3 = nn.BatchNorm2d(h1+2)
+            self.bn3 = nn.BatchNorm2d(h1 + 2)
         self.batch_norm = batch_norm
         BasicNet.__init__(self, None, gpu, False)
 
@@ -478,13 +493,14 @@ config.network_fn = lambda: DisjointActorCriticNet(config.actor_network_fn, conf
 config.actor_optimizer_fn = lambda params: torch.optim.Adam(params, lr=1e-5)
 config.critic_optimizer_fn = lambda params: torch.optim.Adam(params, lr=1e-4, weight_decay=0.001)
 # config.replay_fn = lambda: ReplayMemory(capacity=int(1e9))
-config.replay_fn = lambda: HighDimActionReplay(memory_size=10000, batch_size=64)
-config.random_process_fn = lambda: OrnsteinUhlenbeckProcess(size = task.action_dim, theta=0.3, sigma=0.3, sigma_min=0.01, n_steps_annealing=10000)
+config.replay_fn = lambda: HighDimActionReplay(memory_size=1000, batch_size=64)
+config.random_process_fn = lambda: OrnsteinUhlenbeckProcess(size=task.action_dim, theta=0.3, sigma=0.3, sigma_min=0.01,
+                                                            n_steps_annealing=10000)
 
 config.discount = 0.95
 config.min_memory_size = 1000
 config.max_steps = 100000
-config.max_episode_length = 3000
+config.max_episode_length = 10000
 config.target_network_mix = 0.001
 config.noise_decay_interval = 10000
 config.gradient_clip = 20
@@ -494,7 +510,7 @@ config.test_interval = 50
 config.test_repetitions = 1
 config.save_interval = config.episode_limit = 200
 # config.logger = Logger('/Users/Morgans/Desktop/trading_system/log', gym.logger)
-config.logger = Logger(root+'/log', gym.logger)
+config.logger = Logger(root + '/log', gym.logger)
 config.tag = tag
 agent = DDPGAgent(config)
 # agent
@@ -528,8 +544,8 @@ def test_algo(env, algo):
         # actions = getattr(action, 'value', action)
     df = pd.DataFrame(env.unwrapped.infos)
     # df.index = pd.to_datetime(df['date'] * 1e9)
-    env.render(mode = 'notebook')
-    env.render(mode = 'humman')
+    env.render(mode='notebook')
+    env.render(mode='humman')
     return df['portfolio_value'], df, actions
 
 
@@ -543,10 +559,12 @@ portfolio_value, df_v, actions = test_algo(task_fn_test(), agent)
 
 
 from utils.configration import Configration
-from Environment.HENV import PPortfolioEnv
+from Environment.ENV import PPortfolioEnv
 from utils.util import MDD, sharpe, softmax
 from wrappers import RobSoftmaxActions, RobTransposeHistory
 from wrappers.concat import RobConcatStates
+
+
 class DDeepRLWrapper(gym.Wrapper):
     def __init__(self, env):
         super().__init__(env)
@@ -572,6 +590,7 @@ class DDeepRLWrapper(gym.Wrapper):
             self.env.render('notebook')
         return self.env.reset()
 
+
 def task_fn_H():
     env = PPortfolioEnv(df=df_train, steps=128, window_length=window, output_mode='EIIE',
                         gamma=2, c=0.08, trading_cost=0.0025, utility='Log', scale=True,
@@ -581,6 +600,7 @@ def task_fn_H():
     env = RobSoftmaxActions(env)
     env = DDeepRLWrapper(env)
     return env
+
 
 def task_fn_test_H():
     env = PPortfolioEnv(df=df_test, steps=500, window_length=window, output_mode='EIIE',
@@ -592,6 +612,7 @@ def task_fn_test_H():
     env = DDeepRLWrapper(env)
     return env
 
+
 def task_fn_vali_H():
     env = PPortfolioEnv(df=df_train, steps=2000, window_length=window, output_mode='EIIE',
                         gamma=2, c=0.13, trading_cost=0.0025, utility='Log', scale=True,
@@ -601,7 +622,6 @@ def task_fn_vali_H():
     env = RobSoftmaxActions(env)
     env = DDeepRLWrapper(env)
     return env
-
 
 
 class HiAgent(mp.Process):
@@ -650,7 +670,7 @@ class HiAgent(mp.Process):
         while True:
             # actor.eval()
             actor_high.eval()
-            gt = self.agent._step(np.stack([state])).flatten()  #TODO check agent output
+            gt = self.agent._step(np.stack([state])).flatten()  # TODO check agent output
             at = actor_high.predict(np.stack([state]), np.stack([gt])).flatten()
             if not deterministic:
                 at += self.random_process.sample()
@@ -677,23 +697,23 @@ class HiAgent(mp.Process):
             if done:
                 break
 
-
-            if not deterministic and self.replay_Hierachical.size() >=  config.min_memory_size:
+            if not deterministic and self.replay_Hierachical.size() >= config.min_memory_size:
                 self.worker_network_H.train()
-                #actor.eval()
+                # actor.eval()
                 experiences2 = self.replay_Hierachical.sample()
                 states_H, actions_gt, actions_at, rewards_at, next_states_H, terminals_H = experiences2
                 states_H = tensor(states_H)
                 actions_gt = tensor(actions_gt)
                 actions_at = tensor(actions_at)
                 rewards_at = tensor(rewards_at).unsqueeze(-1)
-                mask_H = tensor(1-terminals_H).unsqueeze(-1)
+                mask_H = tensor(1 - terminals_H).unsqueeze(-1)
                 next_states_H = tensor(next_states_H)
                 gt_next = self.agent._step(next_states_H, False)
                 gt_next = gt_next.detach()
                 # gt_next = gt_next.detach()
                 # gt_next = Variable(gt_next.data, requires_grad=False)
-                q_next_H = target_critic_high.predict(next_states_H, gt_next, target_actor_high.predict(next_states_H, gt_next))
+                q_next_H = target_critic_high.predict(next_states_H, gt_next,
+                                                      target_actor_high.predict(next_states_H, gt_next))
                 q_next_H = config.discount * q_next_H * mask_H
                 q_next_H.add_(rewards_at)
                 q_next_H = q_next_H.detach()
@@ -749,7 +769,7 @@ class Hierachicalagent(nn.Module, BasicNet):
         h2 = 16
         h1 = 32
         # self.conv0 = nn.Conv2d(features, h0, (3, 3), stride = (1,1), padding=(1,1)) # input 64*5 *50 *10 out 64* 48 *8
-        self.conv1 = nn.Conv2d(features, h1, (3, 1)) # input 64 * 50 * 10   output 64 *48 *8
+        self.conv1 = nn.Conv2d(features, h1, (3, 1))  # input 64 * 50 * 10   output 64 *48 *8
         self.conv2 = nn.Conv2d(h1, h2, (stride_time, 1), stride=(stride_time, 1))
         self.conv3 = nn.Conv2d((h2 + 1), 1, (1, 1))
         # self.out = nn.Linear(5, 5)
@@ -761,7 +781,7 @@ class Hierachicalagent(nn.Module, BasicNet):
         if batch_norm:
             self.bn1 = nn.BatchNorm2d(h0)
             self.bn2 = nn.BatchNorm2d(h1)
-            self.bn3 = nn.BatchNorm2d(h2+1)
+            self.bn3 = nn.BatchNorm2d(h2 + 1)
             self.bn4 = nn.BatchNorm2d(h2)
 
         self.batch_norm = batch_norm
@@ -777,7 +797,7 @@ class Hierachicalagent(nn.Module, BasicNet):
     def forward(self, x, w1):
         x = self.to_torch_variable(x)
         w0 = x[:, :1, :1, :]  # weights from last step
-        x = x[:, :, 1:, :]   # remove a_t
+        x = x[:, :, 1:, :]  # remove a_t
         w1 = self.to_torch_variable(w1)[:, None, None, :-1]
         # phi0 = self.non_linear(self.conv0(x))
         # if self.batch_norm:
@@ -789,7 +809,7 @@ class Hierachicalagent(nn.Module, BasicNet):
         h = torch.cat([phi2, w1], 1)
         if self.batch_norm:
             h = self.bn3(h)
-        action = self.conv3(h) # does not include cash account, add cash in next step.
+        action = self.conv3(h)  # does not include cash account, add cash in next step.
         # add cash_bias before we softmax
         cash_bias_int = 0
         cash_bias = self.to_torch_variable(torch.ones(action.size())[:, :, :, :1] * cash_bias_int)
@@ -826,14 +846,14 @@ class Critichierachical(nn.Module, BasicNet):
         # self.conv0 = nn.Conv2d(features, h0, (3, 3), padding=(1,1))
         self.conv1 = nn.Conv2d(features, h2, (3, 1))
         self.conv2 = nn.Conv2d(h2, h1, (stride_time, 1), stride=(stride_time, 1))
-        self.layer3 = nn.Linear((h1 + 2) * actions, 1) # TODO adding action2
+        self.layer3 = nn.Linear((h1 + 2) * actions, 1)  # TODO adding action2
         self.non_linear = non_linear
         self.fc = nn.Dropout(0.0)
 
         if batch_norm:
             self.bn1 = nn.BatchNorm2d(h0)
             self.bn2 = nn.BatchNorm2d(h2)
-            self.bn3 = nn.BatchNorm2d(h1+2)
+            self.bn3 = nn.BatchNorm2d(h1 + 2)
             self.bn4 = nn.BatchNorm2d(h1)
         self.batch_norm = batch_norm
         BasicNet.__init__(self, None, gpu, False)
@@ -872,13 +892,14 @@ class Critichierachical(nn.Module, BasicNet):
         return self.forward(x, action1, action2)
 
 
-from component import HighDimActionReplay, OrnsteinUhlenbeckProcess, AdaptiveParamNoiseSpec, hard_update, ddpg_distance_metric, RobHighDimActionReplay
+from component import HighDimActionReplay, OrnsteinUhlenbeckProcess, AdaptiveParamNoiseSpec, hard_update, \
+    ddpg_distance_metric, RobHighDimActionReplay
 
 config1 = Configration()
 config1.task_fn_H = task_fn_H
 task_H = config1.task_fn_H()
 config1.actor_high = lambda: Hierachicalagent(
-task_H.state_dim, task_H.action_dim, action_gate=None, action_scale=1.0, non_linear=F.relu,
+    task_H.state_dim, task_H.action_dim, action_gate=None, action_scale=1.0, non_linear=F.relu,
     batch_norm=False, gpu=False)
 config1.critic_high = lambda: Critichierachical(
     task_H.state_dim, task_H.action_dim, non_linear=F.relu, batch_norm=False, gpu=False)
@@ -896,7 +917,8 @@ config1.actor_optimizer \
 config1.critic_optimizer \
     = lambda params: torch.optim.Adam(params, lr=1e-4, weight_decay=0.001)
 
-config1.random_process_fn = lambda: OrnsteinUhlenbeckProcess(size=task_H.action_dim, theta=0.3, sigma=0.3, sigma_min=0.01, n_steps_annealing=10000)
+config1.random_process_fn = lambda: OrnsteinUhlenbeckProcess(size=task_H.action_dim, theta=0.3, sigma=0.3,
+                                                             sigma_min=0.01, n_steps_annealing=10000)
 config1.replay_Hierachical = lambda: RobHighDimActionReplay(memory_size=10000, batch_size=64)
 config1.discount = 0.95
 config1.min_memory_size = 1000
@@ -911,19 +933,18 @@ config1.test_interval = 50
 config1.test_repetitions = 1
 config1.save_interval = config1.episode_limit = 150
 # config1.logger = Logger('/Users/Morgans/Desktop/trading_system/log', gym.logger)
-config1.logger = Logger(root+'/log', gym.logger)
+config1.logger = Logger(root + '/log', gym.logger)
 config1.tag = 'Hi-Agent'
 agent2 = HiAgent(config1, agent)
 
 
-
 def training(agent):
     config = agent.config
-    window_size = 10
+    window_size = window
     ep = 0
     # actions = []
     rewards_gt = []
-    rewards_at =[]
+    rewards_at = []
     steps = []
     avg_test_rewards_gt = []
     avg_test_rewards_at = []
@@ -938,8 +959,9 @@ def training(agent):
         # avg_reward_at = np.mean(rewards_at[-window_size:])
         avg_reward_gt = np.mean(rewards_gt)
         avg_reward_at = np.mean(rewards_at)
-        config.logger.info('episode %d, reward_gt %f, reward_at %f,   avg reward_gt %f, avg reward_at %f, total steps %d, episode step %d' % (
-            ep, reward_gt, reward_at, avg_reward_gt, avg_reward_at, agent.total_steps, step))
+        config.logger.info(
+            'episode %d, reward_gt %f, reward_at %f,   avg reward_gt %f, avg reward_at %f, total steps %d, episode step %d' % (
+                ep, reward_gt, reward_at, avg_reward_gt, avg_reward_at, agent.total_steps, step))
 
         if config.save_interval and ep % config.save_interval == 0:
             with open(root + '/video/%s-%s-online-stats-%s.bin' % (
@@ -948,7 +970,8 @@ def training(agent):
 
         if config.render_episode_freq and ep % config.render_episode_freq == 0:
             video_recoder = gym.wrappers.monitoring.video_recorder.VideoRecorder(
-                env=agent.task.env, base_path= root + '/video/%s-%s-%s-%d' % (agent_type, config.tag, agent.task.name, ep))
+                env=agent.task.env,
+                base_path=root + '/video/%s-%s-%s-%d' % (agent_type, config.tag, agent.task.name, ep))
             agent.episode(True, video_recoder)
             video_recoder.close()
 
@@ -960,7 +983,7 @@ def training(agent):
 
         if config.test_interval and ep % config.test_interval == 0:
             config.logger.info('Testing...')
-            agent.save(root +'/video/%s-%s-model-%s.bin' % (agent_type, config.tag, agent.task.name))
+            agent.save(root + '/video/%s-%s-model-%s.bin' % (agent_type, config.tag, agent.task.name))
             test_rewards_gt = []
             test_rewards_at = []
             for _ in range(config.test_repetitions):
@@ -978,11 +1001,12 @@ def training(agent):
                              'test_rewards_gt': avg_test_rewards_gt,
                              'test_rewards_at': avg_test_rewards_at}, f)
             # if avg_reward > config.success_threshold:
-                # break
+            # break
 
     return steps, rewards_gt, rewards_at, avg_test_rewards_gt, avg_test_rewards_at
 
-agent2.task._plot = agent2.task._plot2 = None
+
+agent2.task._plot = agent2.task._plot2 = agent2.task._plot3 = agent2.task._plot4 = agent2.task._plot5 = None
 
 # log_dir_H = '/Users/Morgans/Desktop/trading_system/video/ETF weights/HiAgent-ddpg_cvar_win10_etf.pth'
 # agent2.worker_network_H.load_state_dict(torch.load(log_dir_H))
@@ -993,13 +1017,14 @@ except KeyboardInterrupt as e:
     save_ddpg(agent2)
     raise (e)
 
-def test_performance(env, agent2):
+
+def test_performance(env, agent):
     # algo.config.task = task_fn_test()
     state = env.reset()
     done = False
     actions = []
     while not done:
-        action1, action2 = agent2._step(state)
+        action1, action2 = agent._step(state)
         state, reward_gt, reward_at, done, info, z = env.step(action1, action2)
         if z == 0:
             actions.append(action1)
@@ -1011,9 +1036,10 @@ def test_performance(env, agent2):
     df = pd.DataFrame(env.unwrapped.infos)
     df.index = pd.to_datetime(df['date'] * 1e9)
     env.render(mode='notebook')
-    env.render(mode='humman')
+    env.render(mode='humman')  # TODO check the portfolio value
     return df['portfolio_value'], df, actions
 
+portfolio_value, df_comb, actions = test_performance(task_fn_H(), agent2)
 portfolio_value, df_comb, actions = test_performance(task_fn_vali_H(), agent2)
 portfolio_value, df_comb, actions = test_performance(task_fn_test_H(), agent2)
 
@@ -1021,7 +1047,7 @@ portfolio_value, df_comb, actions = test_performance(task_fn_test_H(), agent2)
 
 df_comb[["portfolio_value", "market_value"]].plot()
 plt.show()
-df_comb.plot(y=['CVaR_DDPG','CVaR'], use_index=True)
+df_comb.plot(y=['CVaR_DDPG', 'CVaR'], use_index=True)
 plt.show()
 df_comb.plot(y=['Sharp ratio', 'Sharp ratio DDPG'], use_index=True)
 plt.show()
