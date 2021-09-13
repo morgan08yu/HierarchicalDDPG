@@ -102,14 +102,21 @@ plot.update(xx, win5_t + win10_t +win20_t+ win25_t+market_t)
 plt.show()
 
 
-from window_length.distributional_ddpg_win10 import agent as Dagent10
-from window_length.distributional_ddpg_win10 import test_algo, task_fn_test, task_fn_vali
-log_dir_D10 ='/Users/Morgans/Desktop/trading_system/video/distributional_ddpg_cvar_win10_etf.pth'
-# agent10 =agent
-Dagent10.worker_network.load_state_dict(torch.load(log_dir_D10))
-portfolio_value_d101, df_v_d10, actions_d10 = test_algo(task_fn_vali(), Dagent10)
-portfolio_value_d102, df_t_d10, act1d0 = test_algo(task_fn_test(), Dagent10)
+# from window_length.distributional_ddpg_win10 import agent as Dagent10
+# from window_length.distributional_ddpg_win10 import test_algo, task_fn_test, task_fn_vali
+# log_dir_D10 ='/Users/Morgans/Desktop/trading_system/video/distributional_ddpg_cvar_win10_etf.pth'
+# # agent10 =agent
+# Dagent10.worker_network.load_state_dict(torch.load(log_dir_D10))
+# portfolio_value_d101, df_v_d10, actions_d10 = test_algo(task_fn_vali(), Dagent10)
+# portfolio_value_d102, df_t_d10, act1d0 = test_algo(task_fn_test(), Dagent10)
 
+from window_length.distribbution_ddpg_30 import agent as Dagent1030
+from window_length.distribbution_ddpg_30 import test_algo, task_fn_test, task_fn_vali
+log_dir_D1030 = '/Users/Morgans/Desktop/trading_system/video/distributional_ddpg_cvar_win10_301_etf.pth'
+# agent10 =agent
+Dagent1030.worker_network.load_state_dict(torch.load(log_dir_D1030))
+portfolio_value_d10130, df_v_d1030, actions_d1030 = test_algo(task_fn_vali(), Dagent1030)
+portfolio_value_d10230, df_t_d1030, act1d030 = test_algo(task_fn_test(), Dagent1030)
 
 from window_length.Hierarchical_ddpg_win10 import agent2 as Hagent10
 from window_length.Hierarchical_ddpg_win10 import test_performance, task_fn_test_H, task_fn_vali_H, task_fn_test_H7, task_fn_test_H13
@@ -160,7 +167,7 @@ plt.show()
 plot4 = LivePlotNotebook(labels=['CVaR_HDDPG']+['CVaR_DDPG']+['CVaR_DDDPG'], ylabel= 'CVaR', colors=['purple', 'slategray', 'royalblue'])
 ys = [df_t_h10['CVaR']]
 CVaR_DDPG = [df_t_h10['CVaR_DDPG']]
-cvar_d=[df_t_d1030['CVaR']]
+cvar_d=[sk_jul['CVaR']]
 plot4.update(x, ys + CVaR_DDPG+cvar_d)
 plt.show()
 

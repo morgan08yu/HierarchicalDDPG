@@ -493,7 +493,7 @@ config.network_fn = lambda: DisjointActorCriticNet(config.actor_network_fn, conf
 config.actor_optimizer_fn = lambda params: torch.optim.Adam(params, lr=1e-5)
 config.critic_optimizer_fn = lambda params: torch.optim.Adam(params, lr=1e-4, weight_decay=0.001)
 # config.replay_fn = lambda: ReplayMemory(capacity=int(1e9))
-config.replay_fn = lambda: HighDimActionReplay(memory_size=1000, batch_size=64)
+config.replay_fn = lambda: HighDimActionReplay(memory_size=3000, batch_size=64)
 config.random_process_fn = lambda: OrnsteinUhlenbeckProcess(size=task.action_dim, theta=0.3, sigma=0.3, sigma_min=0.01,
                                                             n_steps_annealing=10000)
 
