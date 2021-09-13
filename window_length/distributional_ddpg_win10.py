@@ -31,7 +31,7 @@ import logging
 import time
 import seaborn as sns
 window = 10
-os.chdir('../')
+# os.chdir('../')
 root = os.getcwd()
 steps = 128
 import datetime

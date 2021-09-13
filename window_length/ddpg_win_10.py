@@ -408,7 +408,7 @@ class DeterministicActorNet(nn.Module, BasicNet):
             h = self.bn3(h)
         action = self.conv3(h) # does not include cash account, add cash in next step.
         # add cash_bias before we softmax
-        cash_bias_int = 0  # TODO
+        cash_bias_int = 0  #
         cash_bias = self.to_torch_variable(torch.ones(action.size())[:, :, :, :1] * cash_bias_int)
         action = torch.cat([cash_bias, action], -1)
         batch_size = action.size()[0]
