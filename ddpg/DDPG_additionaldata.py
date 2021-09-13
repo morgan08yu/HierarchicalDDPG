@@ -58,8 +58,8 @@ df_test = pd.read_hdf(path_data, key='test', encoding='utf-8')
 
 
 import gym
-window = 10
-steps = 256
+window = 20
+steps = 128
 
 class DeepRLWrapper(gym.Wrapper):
     def __init__(self, env):
@@ -269,7 +269,7 @@ class DDPGAgent(mp.Process):
                 break
 
             if not deterministic and self.replay.size() >= config.min_memory_size:
-                self.worker_network.train()
+                # self.worker_network.train()
                 experiences = self.replay.sample()
                 states, actions, rewards, next_states, terminals = experiences
                 states = tensor(states)
@@ -277,7 +277,7 @@ class DDPGAgent(mp.Process):
                 rewards = tensor(rewards).unsqueeze(-1)
                 mask = tensor(1 - terminals).unsqueeze(-1)
                 next_states = tensor(next_states)
-                q_next = target_critic.predict(next_states, target_actor.predict(next_states, False))
+                q_next = target_critic.predict(next_states, target_actor.predict(next_states))
                 q_next = config.discount * q_next * mask
                 q_next.add_(rewards)
                 # q_next += rewards
@@ -355,10 +355,6 @@ class DeterministicCriticNet(nn.Module, BasicNet):
             self.bn1 = nn.BatchNorm2d(h0)
             self.bn2 = nn.BatchNorm2d(h2)
             self.bn3 = nn.BatchNorm2d(h1+2)
-            # self.bn41 = nn.BatchNorm1d(h0)
-            # self.bn42 = nn.BatchNorm1d(h2)
-            # self.bn51 = nn.BatchNorm1d(64)
-            # self.bn61 = nn.BatchNorm1d(32)
         self.batch_norm = batch_norm
         BasicNet.__init__(self, None, gpu, False)
 
@@ -389,26 +385,6 @@ class DeterministicCriticNet(nn.Module, BasicNet):
         # phi21 = self.non_linear(phi21)
         batch_size = x.size()[0]
         out = self.layer3(h.view((batch_size, -1)))
-        # if self.batch_norm:
-        #     phi3 = self.bn41(phi3)
-        # phi3 = self.non_linear(phi3)
-        # a1 = self.layer1a(act)
-        # if self.batch_norm:
-        #     a1 = self.bn42(a1)
-        # a1 = self.non_linear(a1)
-        # a2 = self.layer2a(a1)
-        # a1 = a1[:, None, None, :]
-        # net = torch.cat([phi2, a2], 1)
-        # net = torch.add(phi3, a2)
-        # if self.batch_norm:
-        #     net = self.bn51(net)
-        # net = self.non_linear(net)
-        # h = torch.cat([phi2, a2], 1)
-        # action = self.non_linear(self.layer3(h))
-        # out = self.non_linear(self.layer_t1(net))
-        # if self.batch_norm:
-        #     out = self.bn61(out)
-        # out = self.layer_t2(out)
         return out
 
     def predict(self, x, action):
@@ -477,17 +453,12 @@ class DeterministicActorNet(nn.Module, BasicNet):
         # phi2 = self.non_linear(phi2)
         action = self.conv3(phi2)  # does not include cash account, add cash in next step.
         # add cash_bias before we softmax
-        cash_bias_int = 0  #
+        cash_bias_int = 1  #
         cash_bias = self.to_torch_variable(torch.ones(action.size())[:, :, :, :1] * cash_bias_int)
         action = torch.cat([cash_bias, action], -1)
         # action = phi2
         batch_size = action.size()[0]
         action = action.view((batch_size, -1))
-        # action = self.layer3(action.view((batch_size, -1)))
-        # if self.batch_norm:
-        #     action = self.bn4(action)
-        # action = self.non_linear(action)
-        # action = self.layer4(action)
         if self.action_gate:
             action = self.action_scale * self.action_gate(action)
         # action = F.softmax(action, axis=1)
@@ -511,11 +482,11 @@ config.critic_network_fn = lambda: DeterministicCriticNet(
 config.network_fn = lambda: DisjointActorCriticNet(config.actor_network_fn, config.critic_network_fn)
 config.actor_optimizer_fn = lambda params: torch.optim.Adam(params, lr=1e-5)
 config.critic_optimizer_fn = lambda params: torch.optim.Adam(params, lr=1e-4, weight_decay=0.001)
-config.replay_fn = lambda: HighDimActionReplay(memory_size=10000, batch_size=32)
+config.replay_fn = lambda: HighDimActionReplay(memory_size=10000, batch_size=64)
 config.random_process_fn = lambda: OrnsteinUhlenbeckProcess(size=task.action_dim, theta=0.3, sigma=0.3,
-                                                            sigma_min=0.001, n_steps_annealing=10000)
+                                                            sigma_min=0.01, n_steps_annealing=10000)
 
-config.discount = 0.9
+config.discount = 0.95
 config.min_memory_size = 1000
 config.max_steps = 10000000
 config.max_episode_length = 3000
@@ -526,7 +497,7 @@ config.min_epsilon = 0.1
 config.reward_scaling = 1
 config.test_interval = 50
 config.test_repetitions = 1
-config.save_interval = config.episode_limit = 200
+config.save_interval = config.episode_limit = 150
 config.logger = Logger(root + '/log', gym.logger)
 config.tag = tag
 agent = DDPGAgent(config)
@@ -573,7 +544,7 @@ def test_algo(env, algo):
             break
         # actions = getattr(action, 'value', action)
     df = pd.DataFrame(env.unwrapped.infos)
-    # df.index = pd.to_datetime(df['date'] * 1e9)
+    df.index = pd.to_datetime(df['date'] * 1e9)
     env.render(mode='notebook')
     env.render(mode='humman')
     return df['portfolio_value'], df, actions
@@ -588,9 +559,9 @@ portfolio_value, df_v, actions = test_algo(task_fn_test(), agent)
 df_v[["portfolio_value", "market_value"]]
 # df_v['CVaR'].plot()
 # plt.show()
-# log_dir = '/Users/Morgans/Desktop/trading_system/video/DDPGAgent-ddpg-agent-ETF-win5—feature2-etf_chn.pth'
+# log_dir = '/Users/Morgans/Desktop/trading_system/video/addtional data weight/DDPGAgent-win20_weights.pth'
 # agent.save(log_dir)
-
+#
 # torch.save(agent.worker_network.state_dict(), log_dir)
-
+#
 # torch.save(agent.worker_network, log_dir)
