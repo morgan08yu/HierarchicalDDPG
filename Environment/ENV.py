@@ -109,7 +109,7 @@ class DataSrc(object):
     def _step(self):
         # get history matrix from dataframe
         self.step += 1
-        data_window = self.data[:, self.step:self.step + self.window_length, :].copy()  # TODO
+        data_window = self.data[:, self.step:self.step + self.window_length, :].copy()
         # truth_obs = self._data[:, self.step + self.window_length:self.step + self.window_length + 1, :].copy()
         cprice = self.data[:, self.step:self.step + self.window_length, 3]
         "price relative change for closing pricing "
@@ -125,12 +125,12 @@ class DataSrc(object):
 
         if self.scale_extra_cols:
             "normalize non price columns"
-            data_window[:, :, nb_pc:] -= self.stats["mean"][None, None, nb_pc:]  # TODO
-            data_window[:, :, nb_pc:] /= self.stats["std"][None, None, nb_pc:]  # TODO
+            data_window[:, :, nb_pc:] -= self.stats["mean"][None, None, nb_pc:]
+            data_window[:, :, nb_pc:] /= self.stats["std"][None, None, nb_pc:]
             data_window[:, :, nb_pc:] = np.clip(data_window[:, :, nb_pc:],
-                                                self.stats["mean"][nb_pc:] - self.stats["std"][nb_pc:] * 2,
-                                                self.stats["mean"][nb_pc:] + self.stats["std"][nb_pc:] * 2)
-            #data_window[:, :, nb_pc:] = (data_window[:, :, nb_pc:] - 1) * 100
+                                                self.stats["mean"][nb_pc:] - self.stats["std"][nb_pc:] * 10,
+                                                self.stats["mean"][nb_pc:] + self.stats["std"][nb_pc:] * 10)
+            # data_window[:, :, nb_pc:] = (data_window[:, :, nb_pc:] - 1) * 100
         history = data_window  # -1) * 100
         done = bool(self.step >= self.steps)
         return history, y1, done, cprice
@@ -138,14 +138,14 @@ class DataSrc(object):
     def reset(self):
         self.step = 0
         "extract data for this episode"
-        # if self.random_reset:
-        #     self.idx = np.random.randint(low=self.window_length + 1, high=self._data.shape[1] - self.steps - 2) # TODO modify the low and high
-        # else:
-        #     if self.idx > (self._data.shape[1] - self.steps - self.window_length - 1):
-        #         self.idx = self.window_length + 1
-        #     else:
-        #         self.idx += self.steps
-        self.idx = np.random.randint(low=self.window_length + 1, high=self._data.shape[1] - self.steps - 2)
+        if self.random_reset:
+            self.idx = np.random.randint(low=self.window_length + 1, high=self._data.shape[1] - self.steps - 2) # TODO modify the low and high
+        else:
+            # if self.idx > (self._data.shape[1] - self.steps - self.window_length - 1):
+            self.idx = self.window_length + 1
+            # else:
+                # self.idx += self.steps
+        # self.idx = np.random.randint(low=self.window_length + 1, high=self._data.shape[1] - self.steps - 2)
         self.data = self._data[:, self.idx - self.window_length:self.idx + self.steps + 1, :].copy()
         self.times = self._times[self.idx - self.window_length:self.idx + self.steps + 1]
 
@@ -165,11 +165,11 @@ class PortfolioSim(object):
         self.utility = utility
         self.gamma = gamma
         self.alpha = 0.05
-        self.c = c  # TODO setup CVAR constraint
+        self.c = c
         self.reset()
 
     def assets_historical_returns_and_covariances(self, prices):
-        # prices = matrix(prices)  # create numpy matrix from prices
+        # prices = matrix(prices)  #  create numpy matrix from prices
         # create matrix of historical returns
         # prices = prices.T
         # prices = np.matrix(prices)
@@ -265,7 +265,7 @@ class PortfolioSim(object):
             ret[r, :] = out
         return ret
 
-    def _step(self, w1,  w2, y1, cprice): # TODO adding extra action w1 action gt , w2 action at
+    def _step(self, w1,  w2, y1, cprice):
         """
         Step.
         w1 - new action of portfolio weights - e.g. [0.1,0.9, 0.0]
@@ -274,55 +274,57 @@ class PortfolioSim(object):
         """
         w0 = self.w0
         p0 = self.p0
-        p0_gt = self.p0_gt
-        #p0_at = self.p0_at
+        p0_gt = self.p0_gt  # portfolio for Dagent
+        # p0_at = self.p0_at  # portfolio for Hagent
         w0_gt = self.w0_gt
-        #w0_at = self.w0_at
+        # w0_at = self.w0_at
 
         d50 = cprice
         ret50, cor50 = self.assets_historical_returns_and_covariances(d50)
         dw1 = (y1 * w0) / (np.dot(y1, w0) + eps)
-        dw1_gt = (y1 * w0_gt) / (np.dot(y1, w0_gt) + eps)  #TODO under action (gt)
+        dw1_gt = (y1 * w0_gt) / (np.dot(y1, w0_gt) + eps)  # under ddpg
         # (excluding change in cash to avoid double counting for transaction cost)
-        #w_pre = np.array([1] + [0] * len(self.asset_names))
-        #dw_pre = (y1 * w_pre) / (np.dot(y1, w_pre) + eps)
-        c1 = self.cost * (np.abs(dw1[1:] - w1[1:])).sum()
-        c1_gt = self.cost * (np.abs(dw1_gt[1:] - w1[1:])).sum()
-        c2 = self.cost * (np.abs(dw1[1:] - w2[1:])).sum()
-        #c_pre = self.cost * (np.abs(dw_pre[1:] - w_pre[1:])).sum()
+        # w_pre = np.array([1] + [0] * len(self.asset_names))
+        # dw_pre = (y1 * w_pre) / (np.dot(y1, w_pre) + eps)
+        c1 = self.cost * (np.abs(dw1[1:] - w1[1:])).sum() # cost for action1
+        c1_gt = self.cost * (np.abs(dw1_gt[1:] - w1[1:])).sum() # cost for ddpg
+        c2 = self.cost * (np.abs(dw1[1:] - w2[1:])).sum() # cost for action2
+        # c_pre = self.cost * (np.abs(dw_pre[1:] - w_pre[1:])).sum()
         p1 = p0 * (1 - c1) * np.dot(y1, w0)
         p2 = p0 * (1 - c2) * np.dot(y1, w0)
-        #p1_null = p0 * (1 - c_pre) * np.dot(y1, w0)  # final portfolio value
-        p1 = p1 * (1 - self.time_cost) # we can add a cost to holding
-        p2 = p2 * (1 - self.time_cost)
-        p1_gt = p0_gt * (1 - c1_gt) * np.dot(y1, w0_gt)  # TODO DDPG portfolio value
+        # p1_null = p0 * (1 - c_pre) * np.dot(y1, w0)  # final portfolio value
+        p1 = p1 * (1 - self.time_cost) # portfolio value for action1
+        p2 = p2 * (1 - self.time_cost) # portfolio value for action2
+        p1_gt = p0_gt * (1 - c1_gt) * np.dot(y1, w0_gt)  # DDPG portfolio value
         # can't have negative holdings in this model (no shorts)
-        p1 = np.clip(p1, 0, np.inf)
-        p2 = np.clip(p2, 0, np.inf)
+        p1 = np.clip(p1, 0, np.inf) # define the portfolio value under action 1
+        p2 = np.clip(p2, 0, np.inf) # define the portfolio value under action 2
         p1_gt = np.clip(p1_gt, 0, np.inf)
 
 
-        rho1 = p1 / p0 - 1  # rate of returns
-        rho2 = p2 / p0 - 1
-        rho_DDPG = p1_gt / p0_gt - 1
-        mu_gt = np.dot(w1[1:], ret50) #TODO mu comes from w1 (g_t)
-        sigma_gt = np.sqrt(np.dot(w1[1:].T, np.dot(cor50, w1[1:]))) # TODO sigma comes form w1 (g_t)
-        mu_at = np.dot(w2[1:], ret50)  # TODO mu comes from w2 (a_t)
-        sigma_at = np.sqrt(np.dot(w2[1:].T, np.dot(cor50, w2[1:])))  # TODO sigma comes form w2(a_t)
+        rho1 = p1 / p0 - 1  # rate of returns under action1
+        rho2 = p2 / p0 - 1 # rate of returns under action2
+        rho_DDPG = p1_gt / p0_gt - 1 # rate of returns under ddpg
+        mu_gt = np.dot(w1[1:], ret50) # \mu comes from w1 (g_t)
+        sigma_gt = np.sqrt(np.dot(w1[1:].T, np.dot(cor50, w1[1:]))) #  sigma comes form w1 (g_t)
+        mu_at = np.dot(w2[1:], ret50)  # mu comes from w2 (a_t)
+        sigma_at = np.sqrt(np.dot(w2[1:].T, np.dot(cor50, w2[1:])))  # sigma comes form w2(a_t)
 
-        CVaR_n = self.alpha ** -1 * norm.pdf(norm.ppf(self.alpha)) * sigma_gt - mu_gt  #TODO CVaR is depend on g_t
+        CVaR_n = self.alpha ** -1 * norm.pdf(norm.ppf(self.alpha)) * sigma_gt - mu_gt
+        # CVaR is depend on g_t  --- under ddpg
         # r1 = np.log(p1/p0)  #  log rate of return
-        CVaR_at = self.alpha ** -1 * norm.pdf(norm.ppf(self.alpha)) * sigma_at - mu_at  #TODO CVaR is depend on g_t
-        sharp_ratio_DDPG = np.sqrt(250) * mu_gt / (sigma_gt + eps)
-        sharp_ratio_at = np.sqrt(250) * mu_at / (sigma_at + eps)
+        CVaR_at = self.alpha ** -1 * norm.pdf(norm.ppf(self.alpha)) * sigma_at - mu_at
+        # CVaR is depend on a_t
+        sharp_ratio_DDPG = np.sqrt(252) * mu_gt / (sigma_gt + eps)
+        sharp_ratio_at = np.sqrt(252) * mu_at / (sigma_at + eps)
         if self.utility == 'Log':  # log rate of return
-            r1 = np.log(p1 / p0) #- np.log(y1.mean())  #np.log
-            r1_gt = np.log(p1_gt / p0_gt) #- np.log(y1.mean())
-            r2 = np.log(p2 / p0) #- np.log(y1.mean())
-            reward_gt = r1_gt * 10000 / self.steps
-            #reward_at = 1/self.gamma * ( mu_at /(sigma_at+1e-12) -mu_gt /(sigma_gt+1e-12)) #/self.steps
+            r1 = np.log(p1 / p0) # - np.log(y1.mean())  #np.log
+            r1_gt = np.log(p1_gt / p0_gt) # - np.log(y1.mean())
+            r2 = np.log(p2 / p0) # - np.log(y1.mean())
+            reward_gt = r1_gt * 1000 / self.steps
+            # reward_at = 1/self.gamma * ( mu_at /(sigma_at+1e-12) -mu_gt /(sigma_gt+1e-12)) #/self.steps
             reward_at = (CVaR_n - CVaR_at) * 1000 / self.steps  # TODO reward for cvar
-            #reward_at = (sharp_ratio_at/(c2+eps) - sharp_ratio_DDPG/(c1_gt+eps)) / self.steps
+            # reward_at = (sharp_ratio_at/(c2+eps) - sharp_ratio_DDPG/(c1_gt+eps)) / self.steps
         elif self.utility == 'Power':  # CRRA power utility function
             r1 = ((p1 / p0) ** self.gamma - 1) / self.gamma
             reward = r1 * 10000 / self.steps
@@ -337,7 +339,7 @@ class PortfolioSim(object):
         else:
             raise Exception('Invalid value for utility: %s' % self.utility)
         # immediate reward is log rate of return scaled by episode length
-        # reward = r_50 * 10000 / self.steps  #TODO
+        # reward = r_50 * 10000 / self.steps
         # remember for next step
         if CVaR_n < self.c:  # TODO < if using CVaR_n
             self.w0 = w1
@@ -372,14 +374,14 @@ class PortfolioSim(object):
             "log-return_at": r2,
             "portfolio_value": portfolio_value,
             "portfolio_value_DDPG": p1_gt,
-            #"portfolio_value_at": p2,
+            # "portfolio_value_at": p2,
             "market_return": y1.mean(),
             "rate_of_return": rho,
             "rate_of_return DDPG": rho_DDPG,
-            #"weights_gt_mean": w1.mean(),
-            #"weights_gt_std": w1.std(),
-            #"weights_at_mean": w2.mean(),
-            #"weights_at_std": w2.std(),
+            # "weights_gt_mean": w1.mean(),
+            # "weights_gt_std": w1.std(),
+            # "weights_at_mean": w2.mean(),
+            # "weights_at_std": w2.std(),
             "cost": cost,
             "cost_DDPG": c1_gt,
             "CVaR_DDPG": CVaR_n,
@@ -392,7 +394,7 @@ class PortfolioSim(object):
         # record weights and prices
         for i, name in enumerate(['Cash'] + self.asset_names):
             info['weight_gt_' + name] = w1[i]
-            info['weight_at_' + name] = w2[i]  #info['price_gt_' + name] = y1[i]
+            info['weight_at_' + name] = w2[i]  # info['price_gt_' + name] = y1[i]
         self.infos.append(info)
         for i, name in enumerate(['Cash'] + self.asset_names):
             info['weight_' + name] = action_final[i]
@@ -403,9 +405,7 @@ class PortfolioSim(object):
     def reset(self):
         self.infos = []
         self.w0 = np.array([1] + [0] * len(self.asset_names))
-        self.p0 = 1
-        self.p0_gt = 1
-        self.p0_at = 1
+        self.p0 = self.p0_gt = self.p0_at = 1
         self.w0_gt = np.array([1] + [0] * len(self.asset_names))
         self.w0_at = np.array([1] + [0] * len(self.asset_names))
 
@@ -427,7 +427,7 @@ class PPortfolioEnv(gym.Env):
                  augment=0.00,
                  utility='Log',
                  gamma=2,
-                 c = 0.045, # TODO cvar c = 0.045
+                 c = 0.045,
                  output_mode='EIIE',
                  log_dir = None,
                  scale = True,
@@ -602,9 +602,10 @@ class PPortfolioEnv(gym.Env):
         # show a plot of portfolio vs mean market performance
         df_info = pd.DataFrame(self.infos)
         df_info.index = pd.to_datetime(df_info["date"], unit='s')
+        rate_return = df_info["portfolio_value"].iloc[-1]-1
         mdd = max_drawdown(df_info.rate_of_return + 1)
         sharpe_ratio = sharpe(df_info.rate_of_return)
-        title = 'max_drawdown={: 2.2%} sharpe_ratio={: 2.4f}'.format(mdd, sharpe_ratio)
+        title = 'rate_return={:2.2%} max_drawdown={: 2.2%} sharpe_ratio={: 2.4f}'.format(rate_return, mdd, sharpe_ratio)
         df_info[["portfolio_value", "market_value", "portfolio_value_DDPG"]].plot(title=title, fig=plt.gcf(), rot=30)
         plt.show()
 

@@ -37,7 +37,7 @@ def scale_to_start(x):
     return x
 
 
-def sharpe(returns, freq=50, rfr=0):
+def sharpe(returns, freq=252, rfr=0):
     """ Given a set of returns, calculates naive (rfr=0) sharpe (eq 28). """
     return (np.sqrt(freq) * np.mean(returns - rfr + eps)) / np.std(returns - rfr + eps)
 
@@ -45,7 +45,7 @@ def sharpe(returns, freq=50, rfr=0):
 def max_drawdown(returns):
     """ Max drawdown. See https://www.investopedia.com/terms/m/maximum-drawdown-mdd.asp """
     peak = returns.max()
-    trough = returns[returns.argmax():].min()
+    trough = returns[returns.values.argmax():].min()
     return (trough - peak) / (peak + eps)
 
 def risk(returns, freq=50, rfr=0):
@@ -105,7 +105,7 @@ class DataSrc(object):
     def _step(self):
         # get history matrix from dataframe
         self.step += 1
-        data_window = self.data[:, self.step:self.step + self.window_length, :].copy()  # TODO
+        data_window = self.data[:, self.step:self.step + self.window_length, :].copy()
         # truth_obs = self._data[:, self.step + self.window_length:self.step + self.window_length + 1, :].copy()
         cprice = self.data[:, self.step:self.step + self.window_length, 3]
         "price relative change for closing pricing "
@@ -121,8 +121,8 @@ class DataSrc(object):
 
         if self.scale_extra_cols:
             "normalize non price columns"
-            data_window[:, :, nb_pc:] -= self.stats["mean"][None, None, nb_pc:]  # TODO
-            data_window[:, :, nb_pc:] /= self.stats["std"][None, None, nb_pc:]  # TODO
+            data_window[:, :, nb_pc:] -= self.stats["mean"][None, None, nb_pc:]
+            data_window[:, :, nb_pc:] /= self.stats["std"][None, None, nb_pc:]
             data_window[:, :, nb_pc:] = np.clip(data_window[:, :, nb_pc:],
                                                 self.stats["mean"][nb_pc:] - self.stats["std"][nb_pc:] * 10,
                                                 self.stats["mean"][nb_pc:] + self.stats["std"][nb_pc:] * 10)
@@ -133,7 +133,12 @@ class DataSrc(object):
     def reset(self):
         self.step = 0
         "extract data for this episode"
-        self.idx = np.random.randint(low=self.window_length + 1, high=self._data.shape[1] - self.steps - 2)
+        if self.random_reset:
+            self.idx = np.random.randint(low=self.window_length + 1, high=self._data.shape[1] - self.steps - 2) # TODO modify the low and high
+        else:
+            # if self.idx > (self._data.shape[1] - self.steps - self.window_length - 1):
+            self.idx = self.window_length + 1
+        # self.idx = np.random.randint(low=self.window_length + 1, high=self._data.shape[1] - self.steps - 2)
         self.data = self._data[:, self.idx - self.window_length:self.idx + self.steps + 1, :].copy()
         self.times = self._times[self.idx - self.window_length:self.idx + self.steps + 1]
 
@@ -509,9 +514,10 @@ class PortfolioEnv(gym.Env):
         # show a plot of portfolio vs mean market performance
         df_info = pd.DataFrame(self.infos)
         df_info.index = pd.to_datetime(df_info["date"], unit='s')
+        rate_return = df_info["portfolio_value"].iloc[-1] - 1
         mdd = max_drawdown(df_info.rate_of_return + 1)
         sharpe_ratio = sharpe(df_info.rate_of_return)
-        title = 'max_drawdown={: 2.2%} sharpe_ratio={: 2.4f}'.format(mdd, sharpe_ratio)
+        title = 'rate_return={:2.2%} max_drawdown={: 2.2%} sharpe_ratio={: 2.4f}'.format(rate_return, mdd, sharpe_ratio)
         df_info[["portfolio_value", "market_value"]].plot(title=title, fig=plt.gcf(), rot=30)
         plt.show()
 

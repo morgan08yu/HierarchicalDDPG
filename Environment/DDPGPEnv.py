@@ -138,7 +138,7 @@ class DataSrc(object):
         self.step = 0
         "extract data for this episode"
         if self.random_reset:
-            self.idx = np.random.randint(low=self.window_length + 1, high=self._data.shape[1] - self.steps - 2) # TODO modify the low and high
+            self.idx = np.random.randint(low=self.window_length + 1, high=self._data.shape[1] - self.steps - 2)
         else:
             # if self.idx > (self._data.shape[1] - self.steps - self.window_length - 1):
             self.idx = self.window_length + 1
@@ -273,12 +273,12 @@ class PortfolioSim(object):
         """
         w0 = self.w0
         p0 = self.p0
-        #alpha = 0.9
-        #ewa = self.ewma(cprice, alpha)
+        # alpha = 0.9
+        # ewa = self.ewma(cprice, alpha)
         d50 = cprice
         ret50, cor50 = self.assets_historical_returns_and_covariances(d50)
-        dw1 = (y1 * w0) / (np.dot(y1, w0) + eps)  #TODO replace w1 with w0
-        #(excluding change in cash to avoid double counting for transaction cost)
+        dw1 = (y1 * w0) / (np.dot(y1, w0) + eps)
+        # (excluding change in cash to avoid double counting for transaction cost)
         # w2_pre = np.array([0] + [0.25] * len(self.asset_names))
         # dw2_pre = (y1 * w2_pre) / (np.dot(y1, w2_pre) + eps)
         c1 = self.cost * (np.abs(dw1[1:] - w1[1:])).sum()
@@ -297,9 +297,9 @@ class PortfolioSim(object):
         sigma_cvar = np.sqrt(np.dot(w1[1:].T, np.dot(cor50, w1[1:])))
 
         CVaR_n = self.alpha ** -1 * norm.pdf(norm.ppf(self.alpha)) * sigma_cvar - mu_cvar
-        #r1 = np.log(p1/p0)  #  log rate of return
+        # r1 = np.log(p1/p0)  #  log rate of return
         if self.utility == 'Log':     # log rate of return
-            r1 = np.log(p1 / p0) #- np.log(y1.mean())#- y1.mean()  #np.log
+            r1 = np.log(p1 / p0)
             reward = r1 * 10000 / self.steps
         elif self.utility == 'Power':  # CRRA power utility function
             r1 = ((p1 / p0) ** self.gamma - 1) / self.gamma
@@ -308,10 +308,10 @@ class PortfolioSim(object):
             r1 = (1-np.exp(-self.gamma * p1 / p0)) / self.gamma
             reward = r1 * 10000 / self.steps
         elif self.utility == 'MV':
-            #r_50 = np.dot(w1[1:], ret50) - self.gamma * np.dot(w1[1:].T, np.dot(cor50, w1[1:]))
+            # r_50 = np.dot(w1[1:], ret50) - self.gamma * np.dot(w1[1:].T, np.dot(cor50, w1[1:]))
             r_50 = np.dot(w1[1:], ret50) - CVaR_n
             r1 = np.log(p1 / p0)
-            reward = r_50 * 100 / self.steps #* 100 / self.steps
+            reward = r_50 * 100 / self.steps # * 100 / self.steps
         else:
             raise Exception('Invalid value for utility: %s' % self.utility)
         # immediate reward is log rate of return scaled by episode length
@@ -508,7 +508,7 @@ class PortfolioEnv(gym.Env):
             self._plot_dir4 = os.path.join(self.log_dir, 'notebook_plot_risk_' + str(time.time())) if self.log_dir else None
             self._plot4 = LivePlotNotebook(log_dir=self._plot_dir4, labels=['portfolio risk']+['market risk'], title='Portfolio Risk', ylabel='risk')
         ys = [df_info["portfolio risk"].cumsum()]
-        #yss = [df_info["market risk"].cumsum()]
+        # yss = [df_info["market risk"].cumsum()]
         market_risk = [df_info["market risk"].cumsum()]
         self._plot4.update(x, ys + market_risk)
         plt.show()
@@ -530,11 +530,11 @@ class PortfolioEnv(gym.Env):
 
 
 
-#if __name__ == "__main__":
-    #df_train = pd.read_hdf('/Users/Morgans/Desktop/trading_system/HFT_data/four_stocks/poloniex_vol_4.hf', key='train')
-    #df_test = pd.read_hdf('/Users/Morgans/Desktop/trading_system/HFT_data/four_stocks/poloniex_vol_4.hf', key='test')
+# if __name__ == "__main__":
+    # df_train = pd.read_hdf('/Users/Morgans/Desktop/trading_system/HFT_data/four_stocks/poloniex_vol_4.hf', key='train')
+    # df_test = pd.read_hdf('/Users/Morgans/Desktop/trading_system/HFT_data/four_stocks/poloniex_vol_4.hf', key='test')
 
-    #df = DataSrc(df_train, 256, scale=True, scale_extra_cols=True, augment=0.00, window_length=50, random_reset=True)
+    # df = DataSrc(df_train, 256, scale=True, scale_extra_cols=True, augment=0.00, window_length=50, random_reset=True)
 
 
 
