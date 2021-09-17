@@ -80,11 +80,20 @@ portfolio_value_dis1030, df_t_dis1030, act_dis1030 = test_algo(task_fn_test(), D
 
 
 from windshow.Dddpg_window10_alpha5 import agent as Disagent1005
-from windshow.Dddpg_window10_alpha05 import test_algo, task_fn_test, task_fn_vali
+from windshow.Dddpg_window10_alpha5 import test_algo, task_fn_test, task_fn_vali
 log_dir_dis_1005 = '/Users/Morgans/Desktop/trading_system/video/addtional data weight/DDDPGAgent-win10_alpha5_weights.pth'
 portfolio_value_dis1005, df_v_dis1005, actions_dis1005 = test_algo(task_fn_vali(), Disagent1005)
 portfolio_value_dis1005, df_t_dis1005, act_dis1005 = test_algo(task_fn_test(), Disagent1005)
 
+
+
+from windshow.Hddpg_window5_c5 import agent2 as Hagent505
+from windshow.Hddpg_window5_c5 import test_performance, task_fn_test_H, task_fn_vali_H
+# , task_fn_test_H_5, task_fn_test_H_8, task_fn_test_H_13
+log_dir_505 = '/Users/Morgans/Desktop/trading_system/video/addtional data weight/HiAgent-ddpg_cvar_win5_c5_etf.pth'
+Hagent505.worker_network_H.load_state_dict(torch.load(log_dir_505))
+portfolio_value_h101, df_v_h10, actions_h10 = test_performance(task_fn_vali_H(), Hagent505)
+portfolio_value_h102, df_t_h10, act1h0 = test_performance(task_fn_test_H(), Hagent505)
 
 
 
