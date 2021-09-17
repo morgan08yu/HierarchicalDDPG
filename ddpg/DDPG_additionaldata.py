@@ -329,7 +329,6 @@ import torch.nn.functional as F
 import numpy as np
 from network.base_network import BasicNet
 
-# TODO change the include_cash parameter in environment and concat_state file.
 
 class DeterministicCriticNet(nn.Module, BasicNet):
     def __init__(self,
@@ -482,7 +481,7 @@ config.critic_network_fn = lambda: DeterministicCriticNet(
 config.network_fn = lambda: DisjointActorCriticNet(config.actor_network_fn, config.critic_network_fn)
 config.actor_optimizer_fn = lambda params: torch.optim.Adam(params, lr=1e-5)
 config.critic_optimizer_fn = lambda params: torch.optim.Adam(params, lr=1e-4, weight_decay=0.001)
-config.replay_fn = lambda: HighDimActionReplay(memory_size=10000, batch_size=64)
+config.replay_fn = lambda: HighDimActionReplay(memory_size=10000, batch_size=128)
 config.random_process_fn = lambda: OrnsteinUhlenbeckProcess(size=task.action_dim, theta=0.3, sigma=0.3,
                                                             sigma_min=0.01, n_steps_annealing=10000)
 
