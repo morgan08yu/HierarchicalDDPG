@@ -481,11 +481,11 @@ config.critic_network_fn = lambda: DeterministicCriticNet(
 config.network_fn = lambda: DisjointActorCriticNet(config.actor_network_fn, config.critic_network_fn)
 config.actor_optimizer_fn = lambda params: torch.optim.Adam(params, lr=1e-5)
 config.critic_optimizer_fn = lambda params: torch.optim.Adam(params, lr=1e-4, weight_decay=0.001)
-config.replay_fn = lambda: HighDimActionReplay(memory_size=10000, batch_size=128)
+config.replay_fn = lambda: HighDimActionReplay(memory_size=10000, batch_size=64)
 config.random_process_fn = lambda: OrnsteinUhlenbeckProcess(size=task.action_dim, theta=0.3, sigma=0.3,
                                                             sigma_min=0.01, n_steps_annealing=10000)
 
-config.discount = 0.95
+config.discount = 0.99
 config.min_memory_size = 1000
 config.max_steps = 10000000
 config.max_episode_length = 3000
