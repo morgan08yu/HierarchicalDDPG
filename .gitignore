@@ -1,0 +1,34 @@
+### Example user template template
+### Example user template
+
+# IntelliJ project files
+.idea
+*.iml
+out
+gen
+/video/
+/venv/
+/test/
+/results/
+/log/
+/log_TEST/
+/test/
+/runs/
+/.idea/
+/venv/
+/.idea/vcs.xml
+
+/.idea/misc.xml
+
+/.idea/modules.xml
+
+/.idea/rGraphicsSettings.xml
+
+/.idea/rSettings.xml
+
+/.idea/trading_system.iml
+
+/.idea/vcs.xml
+
+/venv/
+/Results for additional dataset/
