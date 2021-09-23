@@ -107,8 +107,8 @@ class DataSrc(object):
     def _step(self):
         # get history matrix from dataframe
         self.step += 1
-        data_window = self.data[:, self.step:self.step + self.window_length,:].copy() #TODO
-        #truth_obs = self._data[:, self.step + self.window_length:self.step + self.window_length + 1, :].copy()
+        data_window = self.data[:, self.step:self.step + self.window_length,:].copy()
+        # truth_obs = self._data[:, self.step + self.window_length:self.step + self.window_length + 1, :].copy()
         cprice = self.data[:, self.step:self.step + self.window_length, 3]
         "price relative change for closing pricing "
         y1 = data_window[:, -1, 3] / data_window[:, -2, 3]  # close/ previous close  # features = (open, close, high, low, vol)
@@ -119,7 +119,7 @@ class DataSrc(object):
         if self.scale:
             last_close_price = data_window[:, -1, 3]
             data_window[:, :, :nb_pc] /= last_close_price[:, np.newaxis, np.newaxis]
-            # data_window[:, :, :nb_pc] = (data_window[:, :, :nb_pc] - 1) * 100 # TODO try this one
+            # data_window[:, :, :nb_pc] = (data_window[:, :, :nb_pc] - 1) * 100
 
         if self.scale_extra_cols:
             "normalize non price columns"
@@ -149,7 +149,8 @@ class DataSrc(object):
         self.times = self._times[self.idx - self.window_length:self.idx + self.steps + 1]
         # self.idx = np.random.randint(low=self.window_length + 1, high=self._data.shape[1] - self.steps - 2)
         #data += np.random.normal(loc=0, scale=self.augment, size=data.shape)
-
+        return self.data[:, self.step:self.step + self.window_length, :].copy(), \
+               self.data[:, self.step + self.window_length:self.step + self.step + 1, :]
 
 class PortfolioSim(object):
     """
@@ -184,8 +185,8 @@ class PortfolioSim(object):
             expreturns = np.append(expreturns, np.mean(returns[r]))
         # calculate covariances
         covars = np.cov(returns)
-        returns_anu = (1+expreturns)**252 - 1   # Annualize returns
-        vars_anu = covars*252  # Annualize covariances
+        returns_anu = (1+expreturns)**250 - 1   # Annualize returns
+        vars_anu = covars*250  # Annualize covariances
         return expreturns, covars
 
     def ewma_vectorized(self, data, alpha, offset=None, dtype=None, order='C', out=None):

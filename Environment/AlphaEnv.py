@@ -87,8 +87,7 @@ class DataSrc(object):
         # dataframe to matrix
         self.asset_names = df.columns.levels[0].tolist()
         self.features = df.columns.levels[1].tolist()
-        data = df.values.reshape(
-            (len(df), len(self.asset_names), len(self.features)))  # data = (time, asset_names, features)
+        data = df.values.reshape((len(df), len(self.asset_names), len(self.features)))  # data = (time, asset_names, features)
         self._data = np.transpose(data, (1, 0, 2))  # _data =(asset_names, time, features)
         self._times = df.index
 

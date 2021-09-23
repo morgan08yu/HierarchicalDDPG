@@ -58,7 +58,7 @@ df_test = pd.read_hdf(path_data, key='test', encoding='utf-8')
 
 
 import gym
-window = 25
+window = 20
 steps = 256
 
 class DeepRLWrapper(gym.Wrapper):
@@ -452,7 +452,7 @@ class DeterministicActorNet(nn.Module, BasicNet):
         # phi2 = self.non_linear(phi2)
         action = self.conv3(phi2)  # does not include cash account, add cash in next step.
         # add cash_bias before we softmax
-        cash_bias_int = 1  #
+        cash_bias_int = 0
         cash_bias = self.to_torch_variable(torch.ones(action.size())[:, :, :, :1] * cash_bias_int)
         action = torch.cat([cash_bias, action], -1)
         # action = phi2
@@ -479,13 +479,13 @@ config.actor_network_fn = lambda: DeterministicActorNet(
 config.critic_network_fn = lambda: DeterministicCriticNet(
     task.state_dim, task.action_dim, non_linear=F.relu, batch_norm=False, gpu=False)
 config.network_fn = lambda: DisjointActorCriticNet(config.actor_network_fn, config.critic_network_fn)
-config.actor_optimizer_fn = lambda params: torch.optim.Adam(params, lr=1e-6)
-config.critic_optimizer_fn = lambda params: torch.optim.Adam(params, lr=1e-5, weight_decay=0.001)
+config.actor_optimizer_fn = lambda params: torch.optim.Adam(params, lr=1e-5)
+config.critic_optimizer_fn = lambda params: torch.optim.Adam(params, lr=1e-4, weight_decay=0.001)
 config.replay_fn = lambda: HighDimActionReplay(memory_size=10000, batch_size=64)
 config.random_process_fn = lambda: OrnsteinUhlenbeckProcess(size=task.action_dim, theta=0.3, sigma=0.3,
                                                             sigma_min=0.01, n_steps_annealing=10000)
 
-config.discount = 0.97
+config.discount = 0.99
 config.min_memory_size = 1000
 config.max_steps = 10000000
 config.max_episode_length = 3000
@@ -558,9 +558,22 @@ portfolio_value, df_v, actions = test_algo(task_fn_test(), agent)
 df_v[["portfolio_value", "market_value"]]
 # df_v['CVaR'].plot()
 # plt.show()
-# log_dir = '/Users/Morgans/Desktop/trading_system/video/addtional data weight/DDPGAgent-win20_weights.pth'
+# log_dir = '/Users/Morgans/Desktop/trading_system/video/addtional data weight/DDPGAgent-win20_weights_real.pth'
 # agent.save(log_dir)
-#
+# '/Users/Morgans/Desktop/trading_system/video/addtional data weight/DDPGAgent-win25_weights_real2.pth'
 # torch.save(agent.worker_network.state_dict(), log_dir)
 #
 # torch.save(agent.worker_network, log_dir)
+
+
+
+
+
+
+
+
+
+
+
+
+
