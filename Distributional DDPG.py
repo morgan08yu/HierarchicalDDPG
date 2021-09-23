@@ -673,4 +673,4 @@ portfolio_value, df_v, actions= test_algo(task_fn_test(), agent)
 # (risk(df_v.rate_of_return)- risk(df_v.market_return-1)).plot()
 # log_dir = '/Users/Morgans/Desktop/trading_system/video/addtional data weight/DDDPGAgent-win10_alpha15_weights_back2.pth'
 # agent.save(log_dir)
-#
+# #

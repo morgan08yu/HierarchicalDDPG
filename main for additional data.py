@@ -49,8 +49,9 @@ portfolio_value_5, df_t_5, act5 = test_algo(task_fn_test(), DDPGagent5)
 
 
 from windshow.ddpg_window_10 import agent as DDPGagent10
+log_dir_ddpg10 = '/Users/Morgans/Desktop/trading_system/video/addtional data weight/DDPGAgent-win10_weights_final.pth'
 #'/Users/Morgans/Desktop/trading_system/video/addtional data weight/DDDPGAgent-win10_alpha15_weights_back2.pth'
-log_dir_ddpg_10 = '/Users/Morgans/Desktop/trading_system/video/addtional data weight/DDPGAgent-win10_weights.pth'
+# log_dir_ddpg_10 = '/Users/Morgans/Desktop/trading_system/video/addtional data weight/DDPGAgent-win10_weights.pth'
 from windshow.ddpg_window_10 import test_algo, task_fn_test, task_fn_vali
 DDPGagent10.worker_network.load_state_dict(torch.load(log_dir_ddpg_10))
 portfolio_value_10, df_v_10, actions_10 = test_algo(task_fn_vali(), DDPGagent10)

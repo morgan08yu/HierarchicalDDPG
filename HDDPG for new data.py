@@ -34,9 +34,9 @@ import time
 import seaborn as sns
 from scipy.stats import norm
 
-window = 25
+window = 20
 root = os.getcwd()
-steps = 128
+steps = 256
 import datetime
 
 ts = datetime.datetime.utcnow().strftime('%Y%m%d_%H-%M-%S')
@@ -491,11 +491,11 @@ config.network_fn = lambda: DisjointActorCriticNet(config.actor_network_fn, conf
 config.actor_optimizer_fn = lambda params: torch.optim.Adam(params, lr=1e-5)
 config.critic_optimizer_fn = lambda params: torch.optim.Adam(params, lr=1e-4, weight_decay=0.001)
 # config.replay_fn = lambda: ReplayMemory(capacity=int(1e9))
-config.replay_fn = lambda: HighDimActionReplay(memory_size=10000, batch_size=64)
+config.replay_fn = lambda: HighDimActionReplay(memory_size=100000, batch_size=64)
 config.random_process_fn = lambda: OrnsteinUhlenbeckProcess(size=task.action_dim, theta=0.3, sigma=0.3, sigma_min=0.01,
                                                             n_steps_annealing=10000)
 
-config.discount = 0.95
+config.discount = 0.99
 config.min_memory_size = 1000
 config.max_steps = 100000
 config.max_episode_length = 10000
@@ -516,8 +516,10 @@ agent = DDPGAgent(config)
 # log_dir_ddpg_10 = '/Users/Morgans/Desktop/trading_system/video/addtional data weight/DDPGAgent-win10_weights.pth'
 # log_dir_ddpg_20 = '/Users/Morgans/Desktop/trading_system/video/addtional data weight/DDPGAgent-win10_20_weights_back2.pth'
 # log_dir = '/Users/Morgans/Desktop/trading_system/video/addtional data weight/DDPGAgent-win25_weights_backbtry2.pth'
-log_dir_ddpg_25 = '/Users/Morgans/Desktop/trading_system/video/addtional data weight/DDPGAgent-win25_weights_backbtry3.pth'
-agent.worker_network.load_state_dict(torch.load(log_dir_ddpg_25))
+# log_dir = '/Users/Morgans/Desktop/trading_system/video/addtional data weight/DDPGAgent-win25_weights_backbtry3.pth'
+# log_dir = '/Users/Morgans/Desktop/trading_system/video/addtional data weight/DDPGAgent-win10_weights_try.pth'
+log_dir = '/Users/Morgans/Desktop/trading_system/video/addtional data weight/DDPGAgent-win20_weights_real.pth'
+agent.worker_network.load_state_dict(torch.load(log_dir))
 
 def test_algo(env, algo):
     # algo.config.task = task_fn_test()
@@ -588,7 +590,7 @@ def task_fn_H():
 
 def task_fn_test_H():
     env = PPortfolioEnv(df=df_test, steps=500, window_length=window, output_mode='EIIE',
-                        gamma=2, c=0.06, trading_cost=0.0025, utility='Log', scale=True,
+                        gamma=2, c=0.05, trading_cost=0.0025, utility='Log', scale=True,
                         scale_extra_cols=True, random_reset=False)
     env = RobTransposeHistory(env)
     env = RobConcatStates(env)
