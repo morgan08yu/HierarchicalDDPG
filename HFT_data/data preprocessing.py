@@ -21,9 +21,9 @@ import glob
 from tqdm import tqdm_notebook as tqdm
 import os, json
 
-
+# '/Users/Morgans/Desktop/trading_system/HFT_data/additional dataset/*.csv'
 dfs=[]
-for infile in glob.glob('/Users/Morgans/Desktop/trading_system/HFT_data/additional dataset/*.csv'):
+for infile in glob.glob('/Users/Morgans/Desktop/trading_system/HFT_data/ETF/*.csv'):
     df = pd.read_csv(infile)
     
     # date
@@ -59,7 +59,7 @@ for i in range(len(dfs1)):
     dfs[i][np.isnan(dfs[i])] = 0
     dfs[i].name = name
 
-df = pd.concat(dfs1, axis=1, keys=[df.name for df in dfs1], names=['Pair','Price'])
+df = pd.concat(dfs1, axis=1, keys=[df.name for df in dfs1], names=['ETFs','Price'])
 df
 
 print('cropped from', len(df))
@@ -82,8 +82,8 @@ split_time = df.index[-c]
 df_test = df[df.index > split_time]
 df_train = df[df.index <= split_time]
 print('test#:',len(df_test), 'train#:', len(df_train), 'test_frac:', len(df_test)/len(df), 'cutoff_time:',split_time)
-df_train.to_hdf('/Users/Morgans/Desktop/trading_system/HFT_data/additional dataset/poloniex_fc.hf', key='train', mode='w', append=False)
-df_test.to_hdf('/Users/Morgans/Desktop/trading_system/HFT_data/additional dataset/poloniex_fc.hf', key='test', mode='a', append=False)
+# df_train.to_hdf('/Users/Morgans/Desktop/trading_system/HFT_data/additional dataset/poloniex_fc.hf', key='train', mode='w', append=False)
+# df_test.to_hdf('/Users/Morgans/Desktop/trading_system/HFT_data/additional dataset/poloniex_fc.hf', key='test', mode='a', append=False)
 df_train
 
 
